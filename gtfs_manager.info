@@ -1,0 +1,9 @@
+;$Id$
+
+name = GTFS Manager
+description = Manages data input and route searching for GTFS transit data
+
+core = 7.x
+package = GTFS
+
+files[] = gtfs_manager.module

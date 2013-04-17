@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * Implements hook_schema()
+ *
+ * Defintions for gtfs datatables
+ *
+ * Agencies
+ * Routes
+ * Stops
+ * Trips
+ * Schedules
+ * 
+ * @see https://developers.google.com/transit/gtfs/reference
+ * for more information on the data model
+ */
+function gtfs_manager_schema() {
+  $schema['agencies'] = array(
+    'description' => 'The table for transit provider agencies',
+    'fields' => array(
+      'aid' => array(
+        'description' => 'The primary identifier for an agency',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'agency_name' => array(
+        'description' => 'The name of the transit provider',
+	'type' => 'varchar',
+	'length' => 255,
+	'not null' => TRUE,
+	'default' => '',
+       ),
+       'agency_url' => array(
+         'desctiption' => 'url for agency website',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+       'agency_phone' => array(
+         'description' => 'The phone number for the agency',
+	 'type' => 'varchar',
+	 'length' => 14,
+	 'default' => '',
+       ),
+     ),
+   );
+
+}

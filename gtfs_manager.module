@@ -1,0 +1,401 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ *
+ * Enables gtfs manager
+ */
+
+/*
+define('GTFS_MANAGER_TEXT_PLACEHOLDER', 'Enter a city');
+
+/**
+ * Implements hook_block_info()
+ */
+/*
+function gtfs_manager_block_info() {
+  $blocks = array();
+
+  //define $delta parameter for all block hooks
+  $blocks['search'] = array(
+    'info' => t('Route search form'),
+  );
+
+  $blocks['results'] = array(
+    'info' => t('Search results block'),
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view()
+ *
+ * First version
+ *
+ * @param $delta the name of the requested block
+ */
+/*
+function gtfs_manager_block_view($delta = ''){
+  //Create an empty block
+  $block = array(
+    'subject' => '',
+    'content' => '',
+  );
+
+  // Check which block is being requested
+  switch ($delta) {
+    case 'search':
+      // Set the block title
+      $block['subject'] = t('Search for a route');
+      $block['content'] = drupal_get_form('gtfs_manager_form');
+      break;
+  }
+  return $block;	
+}
+
+/**
+ * Form builder; Create and display the search form
+ */
+/*
+function gtfs_manager_form($form, &$form_state){
+  //Text field for origin
+  $form['gtfs_manager_search_origin'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('gtfs_manager_search_origin',
+				     GTFS_MANAGER_TEXT_PLACEHOLDER),
+    '#title' => t('Enter your origin city'),
+    '#description' => t('The city that you will depart from'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  //Text field for destination
+  $form['gtfs_manager_search_destination'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('gtfs_manager_search_destination',
+				     GTFS_MANAGER_TEXT_PLACEHOLDER),
+    '#title' => t('Enter your destination city'),
+    '#description' => t('The city that you are goin to'),
+    '#size' => 40,
+    '#required' => TRUE,
+  ); 
+
+  //Date picker for travel date -- needs default date
+  $form['gtfs_manager_search_date'] = array(
+    '#type' => 'date',
+    '#title' => t('The date you will be traveling'),
+    '#description' => t('The date you will be traveling'),
+    '#required' => TRUE,
+  );
+
+  //Radio button for round trip
+  $form['gtfs_manager_trip_type_radio'] = array(
+    '#type' => 'radios',
+    '#title' => 'Trip Type',
+    '#options' => array(0 => t('Round Trip'), 1 => t('One Way')),
+    '#description' => t('Choose a trip type'),
+   );
+
+  //Search button
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+
+  return $form;
+
+}
+
+/**
+ * Process the search results
+ */
+/*
+function gtfs_manager_form_submit($form, &$from_state) {
+  drupal_set_message(t('Your search is complete.  Thanks for searching!'));
+}
+
+*/
+
+/**
+ * Implement hook_menu()
+ *
+ * Add entry forms to admin panel
+ */
+function gtfs_manager_menu() {
+  $items = array();
+  
+  $items['admin/config/gtfs_manager'] = array(
+    'title' => 'GTFS Manager',
+    'desctiption' => 'GTFS Settings',
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => array('administer users'),
+  );
+
+  
+  $items['admin/config/gtfs_manager/agencies'] = array(
+    'title' => 'GTFS Agnecy entry form',
+    'description' => 'Add new Agencies here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_agency_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/gtfs_manager/stops'] = array(
+    'title' => 'GTFS Stop entry form',
+    'description' => 'Add new stops here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_stop_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/gtfs_manager/trips'] = array(
+    'title' => 'GTFS Trip entry form',
+    'description' => 'Add new trips here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_trip_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/gtfs_manager/routes'] = array(
+    'title' => 'GTFS Route entry form',
+    'description' => 'Add new Routes here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_route_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  
+    $items['admin/config/gtfs_manager/schedules'] = array(
+    'title' => 'GTFS Schedule entry form',
+    'description' => 'Add new Schedules here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_schedule_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Form builder; create and display the form for a new agency
+ */
+function gtfs_manager_agency_form($form, &$form_state) {
+  //Text field for agency name
+  $form['gtfs_manager_agency_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Agnecy name'),
+    '#description' => t('The name of the transit service provider'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  //text field for agency url
+  $form['gtfs_manager_agency_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Agnecy url'),
+    '#description' => t('The url of the transit service provider'),
+    '#size' => 40,
+  );
+
+  //textfield for agency phone number
+  $form['gtfs_manager_agency_phone'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Agnecy phone number'),
+    '#description' => t('The phone number of the transit service provider'),
+    '#size' => 40,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Agency'),
+  );
+  
+  return $form;
+}
+
+function gtfs_manager_agency_stop_submit($form, &$form_state){
+  drupal_set_message(t('The agency has been added'));
+}
+
+/**
+ * Form builder; create and display the form for a new trip
+ */
+function gtfs_manager_trip_form($form, &$form_state) {
+  //Text field for trip headsign
+  $form['gtfs_manager_trip_headsign'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Trip headsign'),
+    '#description' => t('The headsign for this leg of the route.  example: To Truro'),
+    '#size' => 60,
+    '#required' => TRUE,
+  );
+
+  //Textfield for trip shortname
+  $form['gtfs_manager_trip_shortname'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Trip shortname'),
+    '#description' => t('The shortname for this leg of the route.  example: From Halifax To Truro'),
+    '#size' => 80,
+    '#required' => TRUE,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Trip'),
+  );
+  
+  return $form;
+}
+
+/**
+ * Form builder; create and display the form for a new route
+ */
+function gtfs_manager_route_form($form, &$form_state) {
+  //Text field for route name
+  $form['gtfs_manager_route_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Route name(example: Wolfville to Moncton)'),
+    '#description' => t('The name of this route'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  //Text field for route type
+  $form['gtfs_manager_route_transit_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Transportation Type'),
+    '#description' => t('The transportation type for this route'),
+    '#options' => array(
+			0 => t('Bus'),
+			1 => t('Shuttle'),
+			2 => t('Taxi'),
+			3 => t('Other'),
+      ),
+    '#required' => TRUE,
+  );
+
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Route'),
+  );
+  
+  return $form;
+}
+
+/**
+ * Form builder; create and display the form for a new schedule
+ */
+function gtfs_manager_schedule_form($form, &$form_state) {
+  //Date Field for Schedule Start Date
+  $form['gtfs_manager_schedule_start_date'] = array(
+    '#type' => 'date',
+    '#title' => t('Schedule Start Date'),
+    '#description' => t('The start date for this route'),
+    '#required' => TRUE,
+  );
+
+  //Date field for schedule end date
+  $form['gtfs_manager_schedule_end_date'] = array(
+    '#type' => 'date',
+    '#title' => t('Schedule End Date'),
+    '#description' => t('The end date for this route'),
+    '#required' => TRUE,
+  );
+
+  //checkboxes for days of the week
+  $form['gtfs_manager_schedule_days'] = array(
+    '#type' => 'checkboxes',
+    '#options' => array(t('Monday'), 
+			t('Tuesday'), 
+			t('Wednesday'),
+			t('Thursday'),
+			t('Friday'),
+			t('Saturday'),
+			t('Sunday')
+			),
+    '#title' => t('Which days will this route run?'),
+  );
+
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Schedule'),
+  );
+  
+  return $form;
+}
+
+/**
+ * Form builder; create and display the form for a new stop
+ */
+function gtfs_manager_stop_form($form, &$form_state) {
+  //Textfield for stop name
+  $form['gtfs_manager_stop_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name for this stop. example: Truro'),
+    '#description' => t('The name of this stop'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  //timepicker for stop arrival time
+  $form['gtfs_manager_stop_arrival_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Arrival Time for this stop'),
+    '#description' => t('The arrival time'),
+    '#attributes' => array('class' => array('form-time')),
+    '#size' => 20,
+    '#required' => TRUE,
+  );
+
+  //timepicker for stop arrival time
+  $form['gtfs_manager_stop_departure_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Departure Time for this stop'),
+    '#description' => t('The departure time'),
+    '#attributes' => array('class' => array('form-time')),
+    '#size' =>20,
+    '#required' => TRUE,
+  );
+
+  //tetfield for stop sequence number
+  $form['gtfs_manager_stop_sequence_number'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Sequence number of this stop'),
+    '#description' => t('The stop sequence number'),
+    '#size' => 3,
+    '#required' => TRUE,
+  );
+
+  //tetfield for stop lattitude
+  $form['gtfs_manager_stop_lattitude'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Lattitude for this this stop location'),
+    '#description' => t('The lattitude for this stop'),
+    '#size' => 12,
+    '#required' => TRUE,
+  );  
+
+  //tetfield for stop longitude
+  $form['gtfs_manager_stop_longitude'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Longitude for this this stop location'),
+    '#description' => t('The longitude for this stop'),
+    '#size' => 12,
+    '#required' => TRUE,
+  ); 
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Route'),
+  );
+  
+  return $form;
+}
