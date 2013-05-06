@@ -7,13 +7,25 @@
  * Enables gtfs manager
  */
 
-/*
+
 define('GTFS_MANAGER_TEXT_PLACEHOLDER', 'Enter a city');
+
+
+/**
+ * Implements hook_permission().
+ */
+function gtfs_manager_permission() {
+  return array(
+    'submit form' => array(
+      'title' => t('Submit GTFS Manager Data'),
+      'description' => t('Perform data submissions.'),
+    ),
+  );
+}
 
 /**
  * Implements hook_block_info()
  */
-/*
 function gtfs_manager_block_info() {
   $blocks = array();
 
@@ -26,6 +38,10 @@ function gtfs_manager_block_info() {
     'info' => t('Search results block'),
   );
 
+  $blocks['stops'] = array(
+			   'info' => t('Showing all stops'),
+  );
+
   return $blocks;
 }
 
@@ -36,7 +52,6 @@ function gtfs_manager_block_info() {
  *
  * @param $delta the name of the requested block
  */
-/*
 function gtfs_manager_block_view($delta = ''){
   //Create an empty block
   $block = array(
@@ -51,15 +66,18 @@ function gtfs_manager_block_view($delta = ''){
       $block['subject'] = t('Search for a route');
       $block['content'] = drupal_get_form('gtfs_manager_form');
       break;
+    case 'stops':
+      $block['subject'] = t('Showing all stops');
+      $block['content'] = 'gtfs_manager_trip_detail';
+      break;
   }
   return $block;	
 }
 
 /**
- * Form builder; Create and display the search form
+ * Form builder for the search form
  */
-/*
-function gtfs_manager_form($form, &$form_state){
+function gtfs_manager_search_form($form, &$form_state){
   //Text field for origin
   $form['gtfs_manager_search_origin'] = array(
     '#type' => 'textfield',
@@ -103,20 +121,73 @@ function gtfs_manager_form($form, &$form_state){
     '#type' => 'submit',
     '#value' => t('Search'),
   );
-
   return $form;
-
 }
 
 /**
  * Process the search results
  */
-/*
-function gtfs_manager_form_submit($form, &$from_state) {
+function gtfs_manager_search_form_submit($form, &$from_state) {
   drupal_set_message(t('Your search is complete.  Thanks for searching!'));
 }
 
-*/
+/**
+ * Implements hook_theme
+ */
+function gtfs_manager_theme($existing, $type, $theme, $path) {
+  return array(
+    'gtfs_manager_trip_detail' => array(
+      'variables' => array(
+        'stops' => NULL,
+      ),
+      'template'  => 'gtfs-manager-trip-detail'
+    ),
+  );
+}
+
+/**
+ * Implements template_preprocess_hook()
+ *
+ * Prepares trips detail data for template gtfs-manager-trip-detail.tpl.php
+ * @param &$variables a reference to varables provided by theme_hook()
+ */
+function template_preprocess_gtfs_manager_trip_detail(&$variables) {
+  $stop = $variables['stop'];
+
+  $days = array('monday', 
+		'tuesday', 
+		'wednesday', 
+		'thursday', 
+		'friday', 
+		'saturday', 
+		'sunday'
+		);
+
+
+  $separator = '';
+  $days_string = '';
+
+  foreach ($days as $day) {
+    if ($stop[$day] == 1) {
+      $days_string .= $separator . ucfirst($day);
+      $separator = ', ';
+    }
+  }
+
+  $variables['edit_link'] = l('Edit Stop', 
+			      'admin/config/gtfs_manager/trip/edit/' 
+			      . $stop['tid']
+			      );
+
+  $variables['delete_link'] = l('Remove Stop', 
+			      'admin/config/gtfs_manager/trip/delete/' 
+			      . $stop['tid']
+			      );
+
+  $variables['stop']['days'] = $days_string;
+
+  $variables['classes'] = 'gtfs-manager-stop-detail';
+}
 
 /**
  * Implement hook_menu()
@@ -126,6 +197,7 @@ function gtfs_manager_form_submit($form, &$from_state) {
 function gtfs_manager_menu() {
   $items = array();
   
+  //Add GTFS manager menu to configuration page
   $items['admin/config/gtfs_manager'] = array(
     'title' => 'GTFS Manager',
     'desctiption' => 'GTFS Settings',
@@ -133,25 +205,37 @@ function gtfs_manager_menu() {
     'access arguments' => array('administer users'),
   );
 
-  
+  //Add agency links
   $items['admin/config/gtfs_manager/agencies'] = array(
-    'title' => 'GTFS Agnecy entry form',
-    'description' => 'Add new Agencies here',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('gtfs_manager_agency_form'),
+    'title' => 'GTFS Agency Management',
+    'description' => 'Manage Agencies here',
+    'page callback' => 'gtfs_manager_all_agencies_view',
     'access arguments' => array('administer users'),
     'type' => MENU_NORMAL_ITEM,
   );
 
-  $items['admin/config/gtfs_manager/stops'] = array(
-    'title' => 'GTFS Stop entry form',
-    'description' => 'Add new stops here',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('gtfs_manager_stop_form'),
-    'access arguments' => array('administer users'),
-    'type' => MENU_NORMAL_ITEM,
-  );
 
+  // Show agecny routes link
+  $items['admin/config/gtfs_manager/agencies/routes/%'] = array(
+    'title' => 'View Routes',
+    'title callback' => 'agency_page_title',
+    'title arguments' => array(5),
+    'page callback' => 'gtfs_manager_agency_routes_view',
+    'page arguments' => array(5),
+    'access arguments' => array('administer users'),
+  );
+  
+  // Add agency link
+  $items['admin/config/gtfs_manager/agencies/add'] = array(
+    'title' => 'Add a new agency',
+    'page callback' => 'gtfs_manager_agency_form',
+    'weight' => 1,
+    'menu_name' => 'gtfs_manager',
+    'access arguments' => array('administer users'),
+    'type' => MENU_LOCAL_ACTION,
+  );  
+  
+  //Add trip link
   $items['admin/config/gtfs_manager/trips'] = array(
     'title' => 'GTFS Trip entry form',
     'description' => 'Add new trips here',
@@ -161,6 +245,7 @@ function gtfs_manager_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
 
+  //Add route link
   $items['admin/config/gtfs_manager/routes'] = array(
     'title' => 'GTFS Route entry form',
     'description' => 'Add new Routes here',
@@ -170,6 +255,33 @@ function gtfs_manager_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   
+  // Show route stops link
+  $items['admin/config/gtfs_manager/route/stops/%'] = array(
+    'title' => 'Stops',
+    'page callback' => 'gtfs_manager_route_stops_view',
+    'page arguments' => array(5),
+    'access arguments' => array('administer users'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  // View the details of a stop
+  $items['admin/config/gtfs_manager/stop/view/%'] = array(
+    'title' => 'Showing stop at -StopNamePlaceholder',
+    'page callback' => 'gtfs_manager_show_stop_detail',
+    'page arguments' => array(5),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/gtfs_manager/stop/delete/%'] = array(
+    'title' => 'Showing stop at -StopNamePlaceholder',
+    'page callback' => 'gtfs_manager_delete_stop',
+    'page arguments' => array(5),
+    'access arguments' => array('administer users'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  //Add schedule link
     $items['admin/config/gtfs_manager/schedules'] = array(
     'title' => 'GTFS Schedule entry form',
     'description' => 'Add new Schedules here',
@@ -178,14 +290,17 @@ function gtfs_manager_menu() {
     'access arguments' => array('administer users'),
     'type' => MENU_NORMAL_ITEM,
   );
-
   return $items;
 }
+
 
 /**
  * Form builder; create and display the form for a new agency
  */
-function gtfs_manager_agency_form($form, &$form_state) {
+function gtfs_manager_agency_form($form, &$form_state, $agency = null) {
+  //Set the id to identify this as the agency edit form
+  $form['#id'] = 'agency-form';
+
   //Text field for agency name
   $form['gtfs_manager_agency_name'] = array(
     '#type' => 'textfield',
@@ -211,39 +326,163 @@ function gtfs_manager_agency_form($form, &$form_state) {
     '#size' => 40,
   );
 
-  $form['submit'] = array(
+  // Add the buttons
+  $form['buttons'] = array();
+  $form['buttons']['#wieght'] = 100;
+  $form['buttons']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Create Agency'),
+    '#weight' => 5,
+    '#submit' => array('gtfs_manager_agency_form_submit'),
   );
-  
+
+  //Add a delete button if user is editting
+  if (!empty($agency['aid'])) {
+    $form['buttons']['delete'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete'),
+      '#weight' => 15,
+      '#submit' => array('gtfs_manager_agency_delete_submit')
+    );
+  }
+    
+  $form['#validate'][] = 'gtfs_manager_agency_form_validate';
+
+  //allow other fields to be added to form
+  field_attach_form('artwork', $agency, $form, $form_state);
+
   return $form;
 }
 
-function gtfs_manager_agency_stop_submit($form, &$form_state){
-  drupal_set_message(t('The agency has been added'));
+
+
+/**
+ * Implements hook_validate() for agency submissions
+ */
+function gtfs_manager_agency_form_validate($form, &$form_state){
+
+
 }
 
 /**
- * Form builder; create and display the form for a new trip
+ * Submit hook for agency form
+ */
+function gtfs_manager_agency_form_submit($form, &$form_state){
+  $aid = db_insert('agencies')
+    ->fields(array(
+      'agency_name' => $form_state['values']['gtfs_manager_agency_name'],
+      'agency_url' => $form_state['values']['gtfs_manager_agency_url'],
+      'agency_phone' => $form_state['values']['gtfs_manager_agency_phone'],
+    ))
+    ->execute();
+
+  drupal_set_message(t('Your agency has been submitted'));
+
+  $form_state['redirect'] = 'admin/config/gtfs_manager/agencies';
+
+}
+
+/**
+ * Form builder for new trip, stop, and stop_time
  */
 function gtfs_manager_trip_form($form, &$form_state) {
-  //Text field for trip headsign
-  $form['gtfs_manager_trip_headsign'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Trip headsign'),
-    '#description' => t('The headsign for this leg of the route.  example: To Truro'),
-    '#size' => 60,
+  // This form includes fields for three tables
+  // Trips, stops and stop times
+  
+  //Trip Section of form
+
+  //Select field for acency id
+  $form['gtfs_manager_rid'] = array(
+    '#type' => 'select',
+    '#title' => t('Route'),
+    '#description' => t('The route that this trip belongs to.'),
+    '#options' => gtfs_manager_fetch_routes(),
     '#required' => TRUE,
   );
 
-  //Textfield for trip shortname
-  $form['gtfs_manager_trip_shortname'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Trip shortname'),
-    '#description' => t('The shortname for this leg of the route.  example: From Halifax To Truro'),
-    '#size' => 80,
+ //Select field for acency id
+  $form['gtfs_manager_service_id'] = array(
+    '#type' => 'select',
+    '#title' => t('Calendar'),
+    '#description' => t('The calendar for this leg of the route.'),
+    '#options' => gtfs_manager_fetch_services(),
     '#required' => TRUE,
   );
+
+  //Stop Section
+
+  //Textfield for stop name
+  $form['gtfs_manager_stop_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name for this stop. example: Truro'),
+    '#description' => t('The name of this stop'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  // Text area for stop description
+  $form['gtfs_manager_stop_desc'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Stop description'),
+    '#description' => t('Add details specific to this stop here.'),
+    '#cols' => 40,
+    '#rows' => 6,
+  );
+
+  //tetfield for stop lattitude
+  $form['gtfs_manager_stop_lat'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Lattitude for this this stop location'),
+    '#description' => t('The lattitude for this stop'),
+    '#size' => 24,
+    '#required' => TRUE,
+  );  
+
+  //tetfield for stop longitude
+  $form['gtfs_manager_stop_long'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Longitude for this this stop location'),
+    '#description' => t('The longitude for this stop'),
+    '#size' => 24,
+    '#required' => TRUE,
+  ); 
+
+  //checkbox for wheelchair access
+  $form['gtfs_manager_wheelchair_boarding'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Has wheelchair access'),
+  );
+
+  //timepicker for stop arrival time
+  $form['gtfs_manager_stop_arrival_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Arrival Time for this stop'),
+    '#description' => t('The arrival time'),
+    '#attributes' => array('class' => array('form-time')),
+    '#size' => 20,
+    '#required' => TRUE,
+  );
+
+  //timepicker for stop arrival time
+  $form['gtfs_manager_stop_departure_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Departure Time for this stop'),
+    '#description' => t('The departure time'),
+    '#attributes' => array('class' => array('form-time')),
+    '#size' =>20,
+    '#required' => TRUE,
+  );
+
+  //tetfield for stop sequence number
+  $form['gtfs_manager_stop_sequence'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Sequence number of this stop'),
+    '#description' => t('The stop sequence number'),
+    '#size' => 3,
+    '#required' => TRUE,
+  );
+
+  //Stop Time Section
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -253,21 +492,90 @@ function gtfs_manager_trip_form($form, &$form_state) {
   return $form;
 }
 
+function gtfs_manager_trip_form_submit($form, &$form_state) {
+  //insert the trip hanging on to the $tid for the stop time insert
+ $tid = db_insert('trips')
+    ->fields(array(
+      'rid' => $form_state['values']['gtfs_manager_rid'],
+      'service_id' => $form_state['values']['gtfs_manager_service_id'],
+    ))
+    ->execute(); 
+
+  //insert the stop haning on to the $sid for the stop time insert 
+  $sid = db_insert('stops')
+    ->fields(array(
+      'stop_name' => $form_state['values']['gtfs_manager_stop_name'],
+      'stop_desc' => $form_state['values']['gtfs_manager_stop_desc'],
+      'stop_lat' => $form_state['values']['gtfs_manager_stop_lat'],
+      'stop_long' => $form_state['values']['gtfs_manager_stop_long'],
+      'wheelchair_boarding' => $form_state['values']['gtfs_manager_wheelchair_boarding'],
+    ))
+    ->execute();
+
+  // Stop time insert
+  $stop_time_ids = db_insert('stop_times')
+    ->fields(array(
+      'tid' => $tid,
+      'sid' => $sid,
+      'arrival_time' => $form_state['values']['gtfs_manager_stop_arrival_time'],
+      'departure_time' => $form_state['values']['gtfs_manager_stop_departure_time'],
+      'stop_sequence' => $form_state['values']['gtfs_manager_stop_sequence'],
+    ))
+    ->execute();
+
+  drupal_set_message(t('Your trip has been submitted'));  
+
+}
+
 /**
  * Form builder; create and display the form for a new route
  */
 function gtfs_manager_route_form($form, &$form_state) {
-  //Text field for route name
-  $form['gtfs_manager_route_name'] = array(
+  //Select field for acency id
+  $form['gtfs_manager_aid'] = array(
+    '#type' => 'select',
+    '#title' => t('Agency'),
+    '#description' => t('The agency offering this route'),
+    '#options' => gtfs_manager_fetch_agencies(),
+    '#required' => TRUE,
+  );
+				    
+  //Text field for route short name
+  $form['gtfs_manager_route_short_name'] = array(
     '#type' => 'textfield',
-    '#title' => t('Route name(example: Wolfville to Moncton)'),
-    '#description' => t('The name of this route'),
+    '#title' => t('Route short name(example: Wolf2MoncAM)'),
+    '#description' => t('An abstract identifier for the route'),
     '#size' => 40,
+  );
+
+  //Text field for route long name
+  $form['gtfs_manager_route_long_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Route long name(example: Wolfvilled to Moncton)'),
+    '#description' => t('A human readable identifier for the route'),
+    '#size' => 60,
     '#required' => TRUE,
   );
 
-  //Text field for route type
-  $form['gtfs_manager_route_transit_type'] = array(
+  //Text field for route name
+  $form['gtfs_manager_route_description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Descriprion of route.'),
+    '#description' => t('This would be a good place to include information not captured by this database.  Like stops the service is willing to make as an exception.'),
+    '#rows' => 12,
+    '#cols' => 20,
+  );
+
+  //Textfield for route URL
+  $form['gtfs_manager_route_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL for this route.'),
+    '#description' => t('Th link for this specific route.'),
+    '#size' => 80,
+  );
+
+  //Text field for route type !get from database!
+  $form['gtfs_manager_route_type_id'] = array(
     '#type' => 'select',
     '#title' => t('Transportation Type'),
     '#description' => t('The transportation type for this route'),
@@ -280,13 +588,32 @@ function gtfs_manager_route_form($form, &$form_state) {
     '#required' => TRUE,
   );
 
-
+  //submit to create the stop
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Create Route'),
   );
   
   return $form;
+}
+
+
+/**
+ * Implements hook_form_submit() for route
+ */
+function gtfs_manager_route_form_submit($form, &$form_state) {
+  $rid = db_insert('routes')
+    ->fields(array(
+      'aid' => $form_state['values']['gtfs_manager_aid'],
+      'route_short_name' => $form_state['values']['gtfs_manager_route_short_name'],
+      'route_long_name' => $form_state['values']['gtfs_manager_route_long_name'],
+      'route_desc' => $form_state['values']['gtfs_manager_route_long_name'],
+      'route_type_id' => $form_state['values']['gtfs_manager_route_type_id'],
+      'route_url' => $form_state['values']['gtfs_manager_route_url'],
+    ))
+    ->execute();
+
+  drupal_set_message(t('Your trip has been submitted'));
 }
 
 /**
@@ -312,18 +639,19 @@ function gtfs_manager_schedule_form($form, &$form_state) {
   //checkboxes for days of the week
   $form['gtfs_manager_schedule_days'] = array(
     '#type' => 'checkboxes',
-    '#options' => array(t('Monday'), 
-			t('Tuesday'), 
-			t('Wednesday'),
-			t('Thursday'),
-			t('Friday'),
-			t('Saturday'),
-			t('Sunday')
-			),
+    '#options' => drupal_map_assoc(array(
+			t('monday'), 
+			t('tuesday'), 
+			t('wednesday'),
+			t('thursday'),
+			t('friday'),
+			t('saturday'),
+			t('sunday')
+					 )),
     '#title' => t('Which days will this route run?'),
   );
 
-
+  //submit button to create schedule
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Create Schedule'),
@@ -331,6 +659,60 @@ function gtfs_manager_schedule_form($form, &$form_state) {
   
   return $form;
 }
+
+/**
+ * Submit handler for schedule
+ */
+function gtfs_manager_schedule_form_submit($form, &$form_state) {
+  //concat dates
+  $start_date_epoc =
+    $form_state['values']['gtfs_manager_schedule_start_date']['year'] 
+    . '-'
+    . $form_state['values']['gtfs_manager_schedule_start_date']['month']
+    . '-'
+    . $form_state['values']['gtfs_manager_schedule_start_date']['day'];
+  
+  $end_date_epoc = 
+    $form_state['values']['gtfs_manager_schedule_end_date']['year'] 
+    . '-'
+    . $form_state['values']['gtfs_manager_schedule_end_date']['month']
+    . '-'
+    . $form_state['values']['gtfs_manager_schedule_end_date']['day'];
+
+  //defalut all days to false
+  $days = array(
+		'monday'    => 0,
+		'tuesday'   => 0,
+		'wednesday' => 0,
+		'thursday'  => 0,
+		'friday'    => 0,
+		'saturday'  => 0,
+		'sunday'    => 0,
+  );
+
+  //set selected days to true
+  foreach ($form_state['values']['gtfs_manager_schedule_days'] as $day) {
+    $days[$day] = 1;
+  }
+
+  //insert into calendar table
+  $rid = db_insert('calendar')
+    ->fields(array(
+      'monday' => $days['monday'],
+      'tuesday' => $days['tuesday'],
+      'wednesday' => $days['wednesday'],
+      'thursday' => $days['thursday'],
+      'friday' => $days['friday'],
+      'saturday' => $days['saturday'],
+      'sunday' => $days['sunday'],
+      'start_date' => $start_date_epoc,
+      'end_date' => $end_date_epoc,
+    ))
+    ->execute();
+
+  drupal_set_message(t('Your route has been submitted'));
+}
+
 
 /**
  * Form builder; create and display the form for a new stop
@@ -343,6 +725,38 @@ function gtfs_manager_stop_form($form, &$form_state) {
     '#description' => t('The name of this stop'),
     '#size' => 40,
     '#required' => TRUE,
+  );
+
+  // Text area for stop description
+  $form['gtfs_manager_stop_desc'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Stop description'),
+    '#description' => t('Add details specific to this stop here.'),
+    '#cols' => 40,
+    '#rows' => 6,
+  );
+
+  //tetfield for stop lattitude
+  $form['gtfs_manager_stop_lat'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Lattitude for this this stop location'),
+    '#description' => t('The lattitude for this stop'),
+    '#size' => 24,
+    '#required' => TRUE,
+  );  
+
+  //tetfield for stop longitude
+  $form['gtfs_manager_stop_long'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Longitude for this this stop location'),
+    '#description' => t('The longitude for this stop'),
+    '#size' => 24,
+    '#required' => TRUE,
+  ); 
+
+  $form['gtfs_manager_wheelchair_boarding'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Has wheelchair access'),
   );
 
   //timepicker for stop arrival time
@@ -374,28 +788,331 @@ function gtfs_manager_stop_form($form, &$form_state) {
     '#required' => TRUE,
   );
 
-  //tetfield for stop lattitude
-  $form['gtfs_manager_stop_lattitude'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Lattitude for this this stop location'),
-    '#description' => t('The lattitude for this stop'),
-    '#size' => 12,
-    '#required' => TRUE,
-  );  
-
-  //tetfield for stop longitude
-  $form['gtfs_manager_stop_longitude'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Longitude for this this stop location'),
-    '#description' => t('The longitude for this stop'),
-    '#size' => 12,
-    '#required' => TRUE,
-  ); 
-
+  //Submit button to create a stop
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Create Route'),
+    '#value' => t('Create Stop'),
   );
   
   return $form;
+}
+
+/**
+ * Implements hook_form_submit().
+ *
+ * Submits the stop form
+ */
+function gtfs_manager_stop_form_submit($form, &$form_state) {
+  
+  $sid = db_insert('stops')
+    ->fields(array(
+      'stop_name' => $form_state['values']['gtfs_manager_stop_name'],
+      'stop_desc' => $form_state['values']['gtfs_manager_stop_desc'],
+      'stop_lat' => $form_state['values']['gtfs_manager_stop_lat'],
+      'stop_long' => $form_state['values']['gtfs_manager_stop_long'],
+      'wheelchair_boarding' => $form_state['values']['gtfs_manager_wheelchair_boarding'],
+    ))
+    ->execute();
+
+  drupal_set_message(t('Your stop has been submitted'));
+}
+
+/**
+ * Implements hook_entity_info
+ *
+ * Some confusion here
+ * not sure if I can create multiple entities
+ * but i think so
+ * things can be accomplished procedurally for now
+ */
+
+function gtfs_manager_entity_info() {
+  $return['agency'] = array(
+    'label' => t('Agency'),
+    'controller class' => 'AgencyController',
+    'base table' => 'agencies',
+    'uri callback' => 'agency_uri',
+    'entity keys' => array(
+    'id' => 'aid',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Agency Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+
+  return $return;
+
+}
+
+//Agency Functions
+
+/**
+ * Agency uri callback
+ */
+function agency_uri($agency) {
+  return array(
+    'path' => 'admin/congig/gtfs_manager/agency' . $artwork->aid,
+  );
+}
+
+/**
+ * Load artwork entities from the database
+ *
+ * This function should be used if you need more than one agency.
+ * Agencies are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $aids an array of agency ids
+ * @param $reset wheter to reset the cache
+ *
+ * @return an array of agency objects indexed by aid.
+ */
+function agency_load_multiple($aids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('agency', $aids, $conditions, $reset);
+}
+/**
+ * Load and agency object from the database
+ * @param $aid the agency id
+ * @param $reset whether to reset the artwork cache
+ *
+ * @return a fully populated node object
+ */
+
+function artwork_load($aid = null, $reset = FALSE) {
+  $aids = (isset($aid) ? array($aid) : array());
+  $agency = agency_load_multiple($aids, $reset);
+  return $agency ? reset($agency) : FALSE;
+}
+
+function agency_page_title($aid){
+  //return the agency name
+  //find in cache or get it from the db
+  return t('Showing routes for Name of Agency Here');
+}
+///////////////////////////////////////////////////////////////
+/**
+ *
+ * the functions that follow should be moved
+ * to become entity methods
+ *
+ *
+ */
+
+
+/**
+ * Returns all of the agencies in the database
+ * formatted for a select field
+ */
+function gtfs_manager_fetch_agencies(){
+  $agencies = array();
+  $result = db_query("select aid, agency_name from {agencies}");
+  if ($result) {
+    while ($agency = $result->fetchAssoc()) {
+      $agencies[$agency['aid']] = $agency['agency_name'];
+    }
+  }
+  return $agencies;
+}
+
+/**
+ * Returns all of the routes for a given agency id
+ * formatted for a drop down
+ */
+
+function gtfs_manager_fetch_routes(){
+  $routes = array();
+  $result = db_query("select rid, route_long_name from {routes}");
+  if ($result) {
+    while ($route = $result->fetchAssoc()) {
+      $routes[$route['rid']] = $route['route_long_name'];
+    }
+  }
+  return $routes;
+}
+
+/**
+ * Fetches all of the calendars in the database
+ * doesn't have to be related to any agency, route, or trip
+ */
+function gtfs_manager_fetch_services(){
+  $calendars = array();
+  $result = db_query("select * from {calendar}");
+  if ($result) {
+    while ($calendar = $result->fetchAssoc()) {
+      //format calendar for select field
+      
+      //collect start and end date and remove them from array
+      $start_end_dates_string = 
+	$calendar['start_date'] 
+	. ' to ' 
+	. $calendar['end_date'];
+      unset($calendar['start_date']);
+      unset($calendar['end_date']);
+      
+      //grab the service_id
+      $service_id = $calendar['service_id'];
+      unset($calendar['service_id']);
+
+      $days_string = '';
+      
+      foreach ($calendar as $day => $is_scheduled) {
+	if ($is_scheduled){
+	  $day = ($day == 'thursday') ? 'R' : ucfirst($day[0]);
+	  $days_string .= $day;
+	}
+      }
+      
+      $calendars[$service_id] = $start_end_dates_string 
+	. ' | ' 
+	. $days_string;
+    }
+  }
+  return $calendars;
+}
+
+/**
+ * List all agencies in database
+ */
+function gtfs_manager_all_agencies_view() {
+  //select all agencies from database
+  $result = db_query('select * from {agencies}');
+
+  $agencies['title'] = t('Showing all agencies');
+  $agencies['items'] = array();
+
+  if ($result) {
+    while ($agency = $result->fetchAssoc()) {
+
+      $link = l($agency['agency_name'], 
+		'admin/config/gtfs_manager/agencies/routes/' 
+		.  $agency['aid'] 
+		);
+      array_push($agencies['items'], $link);
+    }
+  }
+  return theme('item_list', $agencies);
+}
+
+
+/**
+ * @param $aid the agency id
+ * @return the list of routes associated with this agency formatted for a select
+ */
+function gtfs_manager_agency_routes_view($aid) {
+  $result 
+    = db_query('select * from {routes} where aid = :aid', array(':aid' => $aid));
+
+  $routes['title'] = t('Showing all routes for -AgnecyNamePlaceholder');
+  $routes['items'] = array();
+  
+
+  if ($result) {
+    while ($route = $result->fetchAssoc()) {
+      $link = l($route['route_long_name'], 
+		'admin/config/gtfs_manager/route/stops/' 
+		. $route['rid']
+		);
+
+      $link .= ' | ';
+
+      $link .= l('Edit', 
+		'admin/config/gtfs_manager/routes/edit/' 
+		. $route['rid']
+		);
+
+      $link .= ' | ';
+
+      $link .= l('Remove', 
+		'admin/config/gtfs_manager/routes/delete/' 
+		. $route['rid']
+		);
+
+      array_push($routes['items'], $link);
+		
+    }
+  }
+  return theme('item_list', $routes);
+}
+
+/**
+ * @param $rid the route id
+ * @return the stops assciated with this route
+ */
+function gtfs_manager_route_stops_view($rid) {
+  $query = 'select s.stop_name, t.tid as trip_id from routes r join trips t'
+    . ' on t.rid = r.rid'
+    . ' join stop_times st'
+    . ' on st.tid = t.tid'
+    . ' join stops s'
+    . ' on s.sid = st.sid'
+    . ' where r.aid = :route_id';
+
+  $result 
+    = db_query($query, array(':route_id' => $rid));
+
+  $stops['title'] = t('Showing all stops for -RouteNamePlaceholder');
+  $stops['items'] = array();
+  
+
+  if ($result) {
+    while ($stop = $result->fetchAssoc()) {
+      $link = l($stop['stop_name'], 
+		'admin/config/gtfs_manager/stop/view/' 
+		. $stop['trip_id']
+		);
+
+      $link .= ' | ';
+
+      $link .= l('Edit', 
+		'admin/config/gtfs_manager/stop/edit/' 
+		 . $stop['trip_id']
+	       );
+
+      array_push($stops['items'], $link);
+    }
+  }
+  return theme('item_list', $stops);
+}
+
+
+/**
+ * Returns the data needed to populate the stop detail template
+ *
+ * @param $tid the trip id
+ * @returns trip/stop/stop_time detail
+ */
+function gtfs_manager_show_stop_detail($tid) {
+  $query = 'select * from trips t'
+    . ' join stop_times st'
+    . ' on st.tid = t.tid'
+    . ' join stops s'
+    . ' on s.sid = st.sid'
+    . ' join calendar c '
+    . ' on c.service_id = t.service_id '
+    . ' where t.tid = :trip_id';
+
+  $result = db_query($query, array(':trip_id' => $tid));
+
+  if ($result) {
+    $stop = $result->fetchAssoc();
+  }
+  
+  $variables['stop'] = $stop;
+
+  return theme('gtfs_manager_trip_detail', $variables);
+}
+
+/**
+ * Removes trip, stop, and stop time associated with the given trip id
+ * Also reorders the sequence numbers if required
+ * @param $tid the trip id of the stop begin removed
+ */
+function gtfs_manager_delete_stop($tid) {
+
 }

@@ -44,7 +44,314 @@ function gtfs_manager_schema() {
 	 'length' => 14,
 	 'default' => '',
        ),
-     ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'unique keys' => array(
+      'aid' => array('aid'),
+    ),
+    'primary key' => array('aid'),
    );
+
+  $schema['routes'] = array(
+    'description' => 'GTFS Manager Routes table',
+    'fields' => array(
+      'rid' => array(
+        'description' => 'The primary identifier for a node',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+      ),
+      'aid' => array(
+        'description' => 'The agency id for this route',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'route_short_name' => array(
+        'description' => 'A short abstract identifier for the route',
+	'type' => 'varchar',
+	'length' => 32,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'route_long_name' => array(
+        'description' => 'The full name of the route.  More descriptive than the sort name',
+	'type' => 'varchar',
+	'length' => 255,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'route_desc' => array(
+        'description' => 'Optional, thorough route description',
+	'type' => 'varchar',
+	'length' => 255,
+      ),
+      'route_type_id' => array(
+        'description' => 'The route type id',
+	'type' => 'int',
+	'not null' => TRUE,
+	'unsigned' => TRUE,
+	'default' => 0,
+      ),
+      'route_url' => array(
+        'description' => 'The route url, optional.',
+	'type' => 'varchar',
+	'length' => 255,
+      ),
+    ),
+    'indexes' => array(
+      'aid' => array('aid'),
+    ),
+    'primary key' => array('rid'),
+    //note that foreign keys are not created in database!
+    //they are for drupal's use only
+    'foreign keys' => array(
+      'agencies' => array(
+        'table' => 'agencies',
+        'columns' => array(
+	  'aid' => 'aid',
+        ),
+      ),
+    ),
+  );
+  
+  $schema['stops'] = array(
+    'description' => 'The table for a route\'s different stops.',
+    'fields' => array(
+      'sid' => array(	   
+        'description' => 'The primary identifier for a stop.',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+      ),
+      'stop_name' => array(
+        'description' => 'The human readable name of the stop.',
+	'type' => 'varchar',
+	'length' => 32,
+	'not null' => TRUE,
+	'default' => '',   
+      ),
+      'stop_desc' => array(
+        'description' => 'Optional, a description of the stop.',
+	'type' => 'varchar',
+	'length' => 255,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'stop_lat' => array(
+	'description' => 'The lattitude for the stop',
+        'type' => 'float',
+	'size' => 'big',
+	'precision' => 8,
+	'not null' => TRUE,
+	'default' => '0.0',
+      ),
+      'stop_long' => array(
+	'description' => 'The longitude for the stop',
+        'type' => 'float',
+	'size' => 'big',
+	'precision' => 8,
+	'not null' => TRUE,
+	'default' => '0.0',
+      ),
+      'wheelchair_boarding' => array(
+        'description' => 'Boolean for wheelchair access',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'sid' => array('sid'),
+    ),
+    'primary key' => array('sid'),
+  );
+
+    
+  $schema['trips'] = array(
+    'description' => 'The table for a route\'s different trips or legs',
+    'fields' => array(
+      'tid' => array(
+        'description' => 'The unique identifier for the trip',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+      ),
+      'rid' => array(
+        'description' => 'The id for the associated route',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'service_id' => array(
+	'description' => 'The id for the associated service or schedule',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+    ),
+    'primary key' => array('tid'),
+    'indexes' => array(
+      'tid' => array('tid'),
+      'tid_rid' => array('tid', 'rid'),
+    ),
+    'foreign keys' => array(
+      'routes' => array(
+        'table' => 'routes',
+        'columns' => array(
+	  'rid' => 'rid',
+	),
+      ),
+      'services' => array(
+        'table' => 'calendar',
+        'columns' => array(
+          'service_id' => 'service_id', 
+	),
+      ),
+    ),      
+  );
+  
+  $schema['stop_times'] = array(
+    'description' => 'The table for a route\'s different stop times.',
+    'fields' => array(
+      'tid' => array(	   
+        'description' => 'Combines with sid to create composite key.',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'sid' => array(
+        'description' => 'Combines with tid to create composite key',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'arrival_time' => array(
+        'description' => 'The arrival time at this stop',
+	'mysql_type' => 'time',
+      ),
+      'departure_time' => array(
+        'description' => 'The departure time at this stop',
+        'mysql_type' => 'time',
+      ),
+      'stop_sequence' => array(
+        'description' => 'Identifies the order of a routes stops',
+	'type' => 'int',
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+    ),
+    'primary key' => array('tid', 'sid'),
+    'indexes' => array(
+      'tid_rid' => array('tid', 'sid'),
+    ),
+    'foreign keys' => array(
+      'routes' => array(
+        'table' => 'trips',
+        'columns' => array(
+	  'tid' => 'tid',
+	),
+      ),
+      'services' => array(
+        'table' => 'stops',
+        'columns' => array(
+          'sid' => 'sid', 
+	),
+      ),
+    ),  
+  );
+
+  $schema['calendar'] = array(
+   'description' => 'The table for a route\'s different stop times.',
+    'fields' => array(
+      'service_id' => array(	   
+        'description' => 'Unique identifier for a schedule.',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+      ),
+      'monday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'tuesday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'wednesday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'thursday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'friday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'saturday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'sunday' => array(
+        'description' => 'Boolean for this day of the week',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'start_date' => array(
+        'mysql_type' => 'date',
+      ),
+      'end_date' => array(
+        'mysql_type' => 'date',
+      ),
+    ),
+   'primary key' => array('service_id'),
+  );
+
+  return $schema;
 
 }

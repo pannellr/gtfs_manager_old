@@ -4,6 +4,7 @@ name = GTFS Manager
 description = Manages data input and route searching for GTFS transit data
 
 core = 7.x
-package = GTFS
+package = GTFS manager
 
 files[] = gtfs_manager.module
+files[] = gtfs_manager.install
