@@ -1,0 +1,31 @@
+.form-item { 
+  width: 50%;
+  min-width: 200px;
+ }
+
+.form-item-gtfs-manager-search-origin{
+  float: left;
+}
+
+.form-item-gtfs-manager-search-destination{
+  float: left;
+ }
+
+.form-item-gtfs-manager-search-date{ 
+  float: left;
+}
+
+.form-item-gtfs-manager-trip-type-radio{ 
+  float: left;
+ }
+
+.date-padding { 
+  padding: 0;
+ }
+
+.container-inline-date { 
+  width: 50%;
+  min-width: 200px;
+  float: left;
+  padding: 0;
+ }

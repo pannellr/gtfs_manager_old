@@ -7,14 +7,20 @@
  *
  * Agencies
  * Routes
+ * Transportation Types
  * Stops
  * Trips
  * Schedules
+ * calendar_dates(exceptions)
+ * Fares
+ * Transfers
  * 
  * @see https://developers.google.com/transit/gtfs/reference
  * for more information on the data model
  */
 function gtfs_manager_schema() {
+
+  // agencies table
   $schema['agencies'] = array(
     'description' => 'The table for transit provider agencies',
     'fields' => array(
@@ -44,6 +50,17 @@ function gtfs_manager_schema() {
 	 'length' => 14,
 	 'default' => '',
        ),
+      'agency_email' => array(
+         'description' => 'The email for the agency',
+	 'type' => 'varchar',
+	 'length' => 20,
+	 'default' => '',
+       ),
+      'agency_info' => array(
+        'description' => 'Optional agency information',
+	'type' => 'varchar',
+	'length' => 255,
+      ),
        'created_at' => array(
          'description' => 'The agency creation date epoc',
 	 'type' => 'int',
@@ -63,6 +80,13 @@ function gtfs_manager_schema() {
 	'not null' => TRUE,
 	'default' => '',
       ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
     ),
     'unique keys' => array(
       'aid' => array('aid'),
@@ -70,6 +94,7 @@ function gtfs_manager_schema() {
     'primary key' => array('aid'),
    );
 
+  // routes table
   $schema['routes'] = array(
     'description' => 'GTFS Manager Routes table',
     'fields' => array(
@@ -81,6 +106,13 @@ function gtfs_manager_schema() {
       ),
       'aid' => array(
         'description' => 'The agency id for this route',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'transportation_type_id' => array(
+        'description' => 'The transportation type id for this route',
 	'type' => 'int',
 	'unsigned' => TRUE,
 	'not null' => TRUE,
@@ -105,17 +137,36 @@ function gtfs_manager_schema() {
 	'type' => 'varchar',
 	'length' => 255,
       ),
-      'route_type_id' => array(
-        'description' => 'The route type id',
-	'type' => 'int',
-	'not null' => TRUE,
-	'unsigned' => TRUE,
-	'default' => 0,
-      ),
       'route_url' => array(
         'description' => 'The route url, optional.',
 	'type' => 'varchar',
 	'length' => 255,
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
       ),
     ),
     'indexes' => array(
@@ -134,6 +185,57 @@ function gtfs_manager_schema() {
     ),
   );
   
+  // transportation types table
+  $schema['transportation_types'] = array(
+    'description' => 'GTFS Manager transportation types table',
+    'fields' => array(
+      'transportation_type_id' => array(
+        'description' => 'The primary identifier for a transportation_type',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+      ),
+      'transportation_type_name' => array(
+        'description' => 'The name of this transporation type',
+	'type' => 'varchar',
+	'length' => 255,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),  
+    ),
+    'indexes' => array(
+      'transportation_type_id' => array('transportation_type_id'),
+    ),
+    'primary key' => array('transportation_type_id'),
+  );
+
+  // stops table
   $schema['stops'] = array(
     'description' => 'The table for a route\'s different stops.',
     'fields' => array(
@@ -157,19 +259,25 @@ function gtfs_manager_schema() {
 	'not null' => TRUE,
 	'default' => '',
       ),
-      'stop_lat' => array(
+      'utm_zone' => array(
+         'description' => 'The UTM zone for this stop',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'stop_northing' => array(
 	'description' => 'The lattitude for the stop',
         'type' => 'float',
 	'size' => 'big',
-	'precision' => 8,
+	'precision' => 2,
 	'not null' => TRUE,
 	'default' => '0.0',
       ),
-      'stop_long' => array(
+      'stop_easting' => array(
 	'description' => 'The longitude for the stop',
         'type' => 'float',
 	'size' => 'big',
-	'precision' => 8,
+	'precision' => 2,
 	'not null' => TRUE,
 	'default' => '0.0',
       ),
@@ -180,6 +288,32 @@ function gtfs_manager_schema() {
 	'not null' => TRUE,
 	'default' => 0,
       ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
     ),
     'indexes' => array(
       'sid' => array('sid'),
@@ -187,7 +321,7 @@ function gtfs_manager_schema() {
     'primary key' => array('sid'),
   );
 
-    
+  // trips table  
   $schema['trips'] = array(
     'description' => 'The table for a route\'s different trips or legs',
     'fields' => array(
@@ -211,6 +345,32 @@ function gtfs_manager_schema() {
 	'not null' => TRUE,
 	'default' => 0,
       ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
     ),
     'primary key' => array('tid'),
     'indexes' => array(
@@ -233,6 +393,7 @@ function gtfs_manager_schema() {
     ),      
   );
   
+  // stop_times table
   $schema['stop_times'] = array(
     'description' => 'The table for a route\'s different stop times.',
     'fields' => array(
@@ -252,17 +413,49 @@ function gtfs_manager_schema() {
       ),
       'arrival_time' => array(
         'description' => 'The arrival time at this stop',
-	'mysql_type' => 'time',
+	'type' => 'varchar',
+	'length' => 32,
+	'not null' => TRUE,
+	'default' => '',
       ),
       'departure_time' => array(
         'description' => 'The departure time at this stop',
-        'mysql_type' => 'time',
+	'type' => 'varchar',
+	'length' => 32,
+	'not null' => TRUE,
+	'default' => '',
       ),
       'stop_sequence' => array(
         'description' => 'Identifies the order of a routes stops',
 	'type' => 'int',
 	'not null' => TRUE,
 	'default' => 0,
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
       ),
     ),
     'primary key' => array('tid', 'sid'),
@@ -285,6 +478,7 @@ function gtfs_manager_schema() {
     ),  
   );
 
+  // calendar table
   $schema['calendar'] = array(
    'description' => 'The table for a route\'s different stop times.',
     'fields' => array(
@@ -343,14 +537,635 @@ function gtfs_manager_schema() {
 	'default' => 0,
       ),
       'start_date' => array(
-        'mysql_type' => 'date',
+	'description' => 'The start date for this calendar',
+        'type' => 'int',
+	'not null' => TRUE,
+	'default' => 0,
       ),
       'end_date' => array(
-        'mysql_type' => 'date',
+	'description' => 'The end date for this calendar',
+        'type' => 'int',
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
       ),
     ),
    'primary key' => array('service_id'),
   );
+
+  // calendar dates table
+  $schema['calendar_dates'] = array(
+   'description' => 'Contains calendar exceptions.',
+    'fields' => array(
+      'service_id' => array(	   
+        'description' => 'Foreign key from calendar table.',
+	'type' => 'int',
+	'unsigned' => TRUE,
+	'not null' => TRUE,
+      ),
+      'date' => array(
+	'description' => 'The date of the eception',	      
+        'mysql_type' => 'date',
+      ),
+      'exception_type' => array(
+        'description' => '1 indicates service has been added for this date and 2 indicates that service has been removed',
+	'type' => 'int',
+	'not null' => TRUE,
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+   'primary key' => array('service_id'),
+   'foreign keys' => array(
+      'calendar' => array(
+        'table' => 'calendar',
+        'columns' => array(
+	  'service_id' => 'service_id',
+	),
+      ),
+    ),   
+  );
+
+  // transfers table
+  $schema['transfers'] = array(
+    'description' => 'Creates links between routes for transfers',
+    'fields' => array(
+      'from_stop_id' => array(
+        'description' => 'The unique identifier for the FROM stop in the transfer',
+	'type' => 'int',
+	'not null' => TRUE,
+      ),
+      'to_stop_id' => array(
+        'description' => 'The unique identifier for the TO stop in the transfer',
+	'type' => 'int',
+	'not null' => TRUE,
+      ),
+      'transfer_type' => array(
+        'description' => '0 reccomended transfer, 1 timed transfer, 2 has a min transfer time, 3 transfers are not possbile',
+	'type' => 'int',
+	'not null' => TRUE,
+      ),
+      'min_transfer_time' => array(
+        'decription' => 'Non negative int in seconds for minimum time of transfer',
+	'type' => 'int',
+	'unsigned' => TRUE,
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('from_stop_id', 'to_stop_id'),
+    'foreign keys' => array(
+      'from_stop' => array(
+        'table' => 'stops',
+          'columns' => array(
+	    'from_trip_id' => 'tid',
+	  ),
+	),
+      'to_stop' => array(
+        'table' => 'stops',
+	'columns' => array(
+	  'to_trip_id' => 'tid',
+	),
+      ),
+    ),
+  );
+
+  // fare rules table
+  $schema['fare_rules'] = array(
+    'description' => 'Creates links between routes for transfers',
+    'fields' => array(
+      'fare_id' => array(
+        'description' => 'The foreign identifier for a fare',
+	'type' => 'int',
+	'not null' => TRUE,
+      ),
+      'route_id' => array(
+        'description' => 'The route id associated with this fare',
+	'type' => 'int',
+      ),
+      'origin_id' => array(
+        'description' => 'The zone id for the fare origin',
+	'type' => 'int',
+      ),
+      'destination_id' => array(
+        'description' => 'The zone id for the destination',
+	'type' => 'int',
+      ),
+      'contains_id' => array(
+        'description' => 'associates a fare with multiple zones',
+	'type' => 'int',
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+  
+    'primary key' => array('fare_id'),
+    'foreign keys' => array(
+      'fare_id' => array(
+        'table' => 'fare_attributes',
+        'columns' => array(
+	  'fare_id' => 'fare_id',
+	),
+      ),
+    ),			
+  );
+
+  // fare attributes table
+  $schema['fare_attributes'] = array(
+    'description' => 'Contains fare information.',
+    'fields' => array(
+      'fare_id' => array(	   
+	'description' => 'Unique identifier for a fare.',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+      ),
+      'price' => array(
+        'description' => 'The fare price, units specified by currency type column',
+	'type' => 'float',
+	'precision' => 2,
+	'not null' => TRUE,
+	'default' => '0.0',
+      ),
+      'currency_type_id' => array(
+        'description' => 'The id for the currency type',
+	'type' => 'int',
+	'not null' => TRUE,
+      ),
+      'payment_method' => array(
+        'description' => 'Binary, 0 for fare paid onboard and 1 otherwise',
+	'type' => 'char',
+	'binary' => TRUE, 
+	'not null' => TRUE,
+	'default' => 0,
+      ),
+      'transfers' => array(
+        'description' => 'The number of transfers permitted on this fare.  Null values imply unlimited transfers.',
+	'type' => 'int',
+       ),
+      'transfer_duration' => array(
+        'description' => 'The length of time in seconds before a transfer expires',
+	'type' => 'int',
+	'unsigned' => TRUE,
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('fare_id'),
+  );
+
+  // features table
+  $schema['service_features'] = array(
+    'description' => 'The table for transit service features',
+    'fields' => array(
+      'service_feature_id' => array(
+        'description' => 'The primary identifier for a service feature',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'service_feature_type_id' => array(
+        'description' => 'The id for the feature type',
+	'type' => 'int',
+      ),
+       'service_feature_name' => array(
+         'desctiption' => 'Name for service feature',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'service_feature_icon_url' => array(
+         'desctiption' => 'Url for icon image',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'service_feature_info' => array(
+        'description' => 'Optional agency information',
+	'type' => 'varchar',
+	'length' => 255,
+      ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('service_feature_id'),
+   );
+
+  // many to many table for route service features
+  $schema['route_service_features'] = array(
+    'description' => 'The table for route specific service features',
+    'fields' => array(
+      'rid' => array(
+        'description' => 'The primary identifier for a route',
+	'type' => 'int',
+      ),
+      'service_feature_id' => array(
+        'description' => 'The id for the feature',
+	'type' => 'int',
+      ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('rid', 'service_feature_id'),
+   );
+
+  // many to many table for agency service features
+  $schema['agency_service_features'] = array(
+    'description' => 'The table for agency specific service features',
+    'fields' => array(
+      'aid' => array(
+        'description' => 'The primary identifier for an agency',
+	'type' => 'int',
+      ),
+      'service_feature_id' => array(
+        'description' => 'The id for the feature',
+	'type' => 'int',
+      ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('aid', 'service_feature_id'),
+   );
+
+  // many to many table for agency service features
+  $schema['stop_service_features'] = array(
+    'description' => 'The table for stop specific service features',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The primary identifier for a stop',
+	'type' => 'int',
+      ),
+      'service_feature_id' => array(
+        'description' => 'The id for the feature',
+	'type' => 'int',
+      ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('sid', 'service_feature_id'),
+   );
+
+  // many to many table for agency service features
+  $schema['vehicle_service_features'] = array(
+    'description' => 'The table for vehicle specific service features',
+    'fields' => array(
+      'vehicle_id' => array(
+        'description' => 'The primary identifier for an vehicle',
+	'type' => 'int',
+      ),
+      'service_feature_id' => array(
+        'description' => 'The id for the feature',
+	'type' => 'int',
+      ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('vehicle_id', 'service_feature_id'),
+   );
+
+// features table
+  $schema['user_searches'] = array(
+    'description' => 'The table that collects user searches',
+    'fields' => array(
+      'user_search_id' => array(
+        'description' => 'The primary identifier for a user search',
+	'type' => 'serial',
+	'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+       'origin_string' => array(
+         'desctiption' => 'origin string entered by user',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'origin_string_type_id' => array(
+         'desctiption' => 'origin string type',
+	 'type' => 'int',
+       ),
+      'destination_string' => array(
+         'desctiption' => 'destination string entered by user',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'destination_string_type_id' => array(
+        'desctiption' => 'destination string type',
+	'type' => 'int',
+       ),
+      'travel_date' => array(
+         'description' => 'The travel date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'return_date' => array(
+         'description' => 'The return date for round trips',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'language' => array(
+         'desctiption' => 'language of users browser',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'ip' => array(
+         'desctiption' => 'user ip',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'geocode' => array(
+         'desctiption' => 'user geocode',
+	 'type' => 'varchar',
+	 'length' => 255,
+	 'not null' => TRUE,
+	 'default' => '',
+       ),
+      'num_results' => array(
+         'desctiption' => 'the number of results displayed to user',
+	 'type' => 'int',
+	 'default' => 0,
+       ),
+       'created_at' => array(
+         'description' => 'The agency creation date epoc',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the agency record was last updated',
+	 'type' => 'int',
+	 'not null' => TRUE,
+	 'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+	'type' => 'varchar',
+	'length' => 25,
+	'not null' => TRUE,
+	'default' => '',
+      ),
+    ),
+    'primary key' => array('user_search_id'),
+   );
+
+
 
   return $schema;
 

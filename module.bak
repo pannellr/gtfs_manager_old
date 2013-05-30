@@ -1,0 +1,1486 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ *
+ * Enables gtfs manager
+ */
+
+define('GTFS_MANAGER_TEXT_PLACEHOLDER', 'Enter a city');
+define('GTFS_MANAGER_DATE_FORMAT', 'F d, Y');
+
+
+
+/**
+ * Implements hook_entity_info
+ *
+ * Some confusion here
+ * not sure if I can create multiple entities
+ * but i think so
+ * things can be accomplished procedurally for now
+ */
+function gtfs_manager_entity_info() {
+  $entities = array();
+
+  return $entities['agency'] = array(
+    'label' => t('Agency'),
+    'controller class' => 'AgencyController',
+    'base table' => 'agencies',
+    'uri callback' => 'agency_uri',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+    'id' => 'aid',
+    'label' => 'agency_name',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Agency Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+  /*
+  $entities['route'] = array(
+    'label' => t('Route'),
+    'controller class' => 'RouteController',
+    'base table' => 'routes',
+    'uri callback' => 'route_uri',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+    'id' => 'rid',
+    'label' => 'route_long_name',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Route Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+  /*
+  $entities['transportation_types'] = array(
+    'label' => t('Transportation Type'),
+    'controller class' => 'TransportationTypeController',
+    'base table' => 'transportation_types',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+    'id' => 'transportation_type_id',
+    'label' => 'transportation_type_name',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Transportation Type Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+  
+
+  $entities['stop'] = array(
+    'label' => t('Stop'),
+    'controller class' => 'StopController',
+    'base table' => 'stops',
+    'uri callback' => 'stop_uri',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+    'id' => 'sid',
+    'label' => 'stop_name',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Stop Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+
+  $entities['stop_time'] = array(
+    'label' => t('Stop Time'),
+    'controller class' => 'StopTimeController',
+    'base table' => 'stop_times',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'tid',
+      'label' => 'stop_arrival_time',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Stop Time Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+
+  $entities['trip'] = array(
+    'label' => t('Trip'),
+    'controller class' => 'TripController',
+    'base table' => 'trips',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'tid',
+      'label' => 'service_id',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Trip Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+
+  $entities['calendar'] = array(
+    'label' => t('Calendar'),
+    'controller class' => 'CalendarController',
+    'base table' => 'calendar',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'service_id',
+      'label' => 'service_id',
+    ),
+    'static cache' => TRUE,
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Calendar Details'),
+	'custom settings' => FALSE,
+      ),
+    ),	      
+  );
+  */
+  return $entities;
+
+}
+
+
+/**
+ * Implements hook_permission().
+ */
+function gtfs_manager_permission() {
+  return array(
+    'administer gtfs' => array(
+      'title' => t('Administer GTFS Data'),
+      'description' => t('Allows user perform all GTFS administration functions.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_info()
+ */
+function gtfs_manager_block_info() {
+  $blocks = array();
+
+  //define $delta parameter for all block hooks
+  $blocks['search'] = array(
+    'info' => t('Route search form'),
+  );
+
+  $blocks['results'] = array(
+    'info' => t('Search results block'),
+  );
+
+  $blocks['agency_detail'] = array(
+    'info' => t('Showing Agency information'),
+  );
+
+  $blocks['route_detail'] = array(
+    'info' => t('Showing Route information'),
+  );
+
+  $blocks['stops'] = array(
+    'info' => t('Showing all stops'),
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view()
+ *
+ * First version
+ *
+ * @param $delta the name of the requested block
+ */
+function gtfs_manager_block_view($delta = ''){
+  //Create an empty block
+  $block = array(
+    'subject' => '',
+    'content' => '',
+  );
+
+  // Check which block is being requested
+  switch ($delta) {
+    case 'search':
+      // Set the block title
+      $block['subject'] = t('Search for a route');
+      $block['content'] = drupal_get_form('gtfs_manager_search_form');
+      break;
+    case 'agency_detail':
+      if (user_access('administer gtfs')) {
+	$block['subject'] = t('Showing agency detail');
+	$block['content'] = 'gtfs_manager_agency_detail';
+      }
+      break;
+    case 'route_detail':
+      if (user_access('administer gtfs')) {
+	$block['subject'] = t('Showing route detail');
+	$block['content'] = 'gtfs_manager_route_detail';
+      }
+      break;
+    case 'stops':
+      $block['subject'] = t('Showing all stops');
+      $block['content'] = 'gtfs_manager_trip_detail';
+    break;
+  }
+  return $block;	
+}
+
+/**
+ * Implements hook_theme()
+ */
+function gtfs_manager_theme() {
+  $themes = array(
+    'gtfs_manager_agency_detail' => array(
+      'template' => 'gtfs-manager-agency-detail',
+      'arguments' => array('agency' => null),
+    ),
+    'gtfs_manager_route_detail' => array(
+      'template' => 'gtfs-manager-route-detail',
+    ),
+    'gtfs_manager_trip_detail' => array(
+      'template'  => 'gtfs-manager-trip-detail'
+    ),
+    'gtfs_manager_route_stops_view' => array(
+      'template'  => 'gtfs-manager-route-stops-view'
+    ),
+  );
+
+  return $themes;
+}
+
+/**
+ * Implements template_preprocess_hook()
+ *
+ * Prepares trips detail data for template gtfs-manager-trip-detail.tpl.php
+ * @param &$variables a reference to varables provided by theme_hook()
+ */
+
+function template_preprocess_gtfs_manager_agency_detail(&$variables) {
+  $variables['classes'] = array('gtfs-manager-agency-detail');
+  $variables['creation_date'] = format_date($variables['agency']->created_at, 
+				     GTFS_MANAGER_DATE_FORMAT);
+  $variables['edit_link'] = l('Edit', 
+    'agency/' . $variables['agency']->aid . '/edit');
+
+  $variables['add_route_link'] = l('Add route', 
+    'agency/' . $variables['agency']->aid . '/route/add');
+
+  $variables['view_routes_link'] = l('View Routes', 
+    'agency/' . $variables['agency']->aid . '/routes/view');
+}
+
+/**
+ * Implements template_preprocess_hook()
+ *
+ * Prepares trips detail data for template gtfs-manager-trip-detail.tpl.php
+ * @param &$variables a reference to varables provided by theme_hook()
+ */
+
+function template_preprocess_gtfs_manager_route_detail(&$variables) {
+  $variables['classes'] = array('gtfs-manager-route-detail');
+  $variables['creation_date'] = format_date($variables['route']->created_at, 
+				     GTFS_MANAGER_DATE_FORMAT);
+  $variables['transportation_type'] = 'FIXME';
+
+  $variables['edit_link'] = l('Edit', 
+    'route/' . $variables['route']->rid . '/edit');
+
+  $variables['add_stop_link'] = l('Add stop', 
+    'route/' . $variables['route']->rid . '/stop/add');
+
+  $variables['view_stops_link'] = l('View Stops', 
+    'route/' . $variables['route']->rid . '/stops/view');
+}
+
+/**
+ * Implements template_preprocess_hook()
+ *
+ * Prepares trips detail data for template gtfs-manager-route_stops-view.tpl.php
+ * @param &$variables a reference to varables provided by theme_hook()
+ */
+
+function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
+  foreach ($variables['stops'] as $stop) {
+    $stop->edit_link = l('Edit this stop', 'stop/' . $stop->sid . '/edit');
+  }
+  $variables['add_stop_link'] = l('Add another stop', 
+    'route/' . $variables['route']->rid . '/stop/add');
+}
+
+
+/**
+ * Form builder for the search form
+ */
+/*
+function gtfs_manager_search_form($form, &$form_state){
+  //Text field for origin
+  $form['gtfs_manager_search_origin'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('gtfs_manager_search_origin',
+				     GTFS_MANAGER_TEXT_PLACEHOLDER),
+    '#title' => t('Enter your origin city'),
+    '#description' => t('The city that you will depart from'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  //Text field for destination
+  $form['gtfs_manager_search_destination'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('gtfs_manager_search_destination',
+				     GTFS_MANAGER_TEXT_PLACEHOLDER),
+    '#title' => t('Enter your destination city'),
+    '#description' => t('The city that you are goin to'),
+    '#size' => 40,
+    '#required' => TRUE,
+  ); 
+
+  //Date picker for travel date -- needs default date
+  $form['gtfs_manager_search_date'] = array(
+    '#type' => 'date',
+    '#title' => t('The date you will be traveling'),
+    '#description' => t('The date you will be traveling'),
+    '#required' => TRUE,
+  );
+
+  //Radio button for round trip
+  $form['gtfs_manager_trip_type_radio'] = array(
+    '#type' => 'radios',
+    '#title' => 'Trip Type',
+    '#options' => array(0 => t('Round Trip'), 1 => t('One Way')),
+    '#description' => t('Choose a trip type'),
+   );
+
+  //Search button
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  return $form;
+}
+*/
+
+/**
+ * Process the search results
+ */
+function gtfs_manager_search_form_submit($form, &$from_state) {
+  drupal_set_message(t('Your search is complete.  Thanks for searching!'));
+}
+
+/**
+ * Implements template_preprocess_hook()
+ *
+ * Prepares trips detail data for template gtfs-manager-trip-detail.tpl.php
+ * @param &$variables a reference to varables provided by theme_hook()
+ */
+
+function template_preprocess_gtfs_manager_trip_detail(&$variables) {
+  $stop = $variables['stop'];
+
+  $days = array('monday', 
+		'tuesday', 
+		'wednesday', 
+		'thursday', 
+		'friday', 
+		'saturday', 
+		'sunday'
+		);
+
+
+  $separator = '';
+  $days_string = '';
+
+  foreach ($days as $day) {
+    if ($stop[$day] == 1) {
+      $days_string .= $separator . ucfirst($day);
+      $separator = ', ';
+    }
+  }
+
+  $variables['edit_link'] = l('Edit Stop', 
+			      'admin/config/gtfs_manager/trip/edit/' 
+			      . $stop['tid']
+			      );
+
+  $variables['delete_link'] = l('Remove Stop', 
+			      'admin/config/gtfs_manager/trip/delete/' 
+			      . $stop['tid']
+			      );
+
+  $variables['stop']['days'] = $days_string;
+
+  $variables['classes'] = 'gtfs-manager-stop-detail';
+}
+
+
+/**
+ * Implement hook_menu()
+ *
+ * Add entry forms to admin panel
+ */
+function gtfs_manager_menu() {
+  $items = array();
+  
+  //Add GTFS manager menu to configuration page
+  $items['admin/config/gtfs_manager'] = array(
+    'title' => 'GTFS Manager',
+    'desctiption' => 'GTFS Settings',
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => array('administer gtfs'),
+  );
+
+  //Add agency links
+  $items['admin/config/gtfs_manager/agencies'] = array(
+    'title' => 'GTFS Agency Management',
+    'description' => 'Manage Agencies here',
+    'page callback' => 'gtfs_manager_all_agencies_view',
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+
+  // Show agecny routes link
+  $items['admin/config/gtfs_manager/agencies/routes/%'] = array(
+    'title' => 'View Routes',
+    'title callback' => 'agency_page_title',
+    'title arguments' => array(5),
+    'page callback' => 'gtfs_manager_agency_routes_view',
+    'page arguments' => array(5),
+    'access arguments' => array('administer gtfs'),
+  );
+  
+
+  // Add agency link
+  $items['agency/add'] = array(
+    'title' => 'Add a new agency',
+    'title callback' => 'check_plain',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_agency_form'),
+    'weight' => 1,
+    'menu_name' => 'gtfs_manager',
+    'access arguments' => array('administer gtfs'),
+    'file' => 'agency.pages.inc',
+  );  
+  
+  // show an agency
+  $items['agency/%agency'] = array(
+    'title callback' => 'agency_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'gtfs_manager_agency_detail',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_CALLBACK,
+    'file' => 'agency.pages.inc',
+  );
+
+  // edit agency
+  $items['agency/%agency/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'agency_page_edit',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'agency.pages.inc',
+  );
+
+  // delete an agency
+  $items['agency/%agency/delete'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('agency_delete_confirm', 1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'file' => 'agency.pages.inc',
+   );
+
+  //Show all agencies
+  $items['agencies/view'] = array(
+    'title' => 'All Agencies',
+    'page callback' => 'gtfs_manager_all_agencies_view',
+    'access arguments' => array('administer gtfs'),
+    'file' => 'agency.pages.inc',
+  );
+
+  //Show and agencies routes
+  $items['agency/%agency/routes'] = array(
+    'title callback' => 'agency_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'agency_routes_page_view',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'file' => 'agency.pages.inc',
+  );
+
+  //Add a route for given agency
+  $items['agency/%agency/route/add'] = array(
+    'title callback' => t('New Route'),
+    'title arguments' => array(1),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_route_form', 
+      entity_get_controller('route')->create(), 1),
+    'weight' => 1,
+    'menu_name' => 'gtfs_manager',
+    'access arguments' => array('administer gtfs'),
+    'file' => 'route.pages.inc',
+  );
+
+  // Show route
+  $items['route/%route'] = array(
+    'title callback' => 'route_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'gtfs_manager_load_route_detail',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'file' => 'route.pages.inc',
+  );
+
+  // Edit route
+  $items['route/%route/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'route_page_edit',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'route.pages.inc',
+  );
+
+  // Delete an agency
+  $items['route/%route/delete'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('route_delete_confirm', 1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'file' => 'route.pages.inc',
+   );
+
+  //Add a stop for given route
+  $items['route/%route/stop/add'] = array(
+    'title callback' => t('New Stop'),
+    'title arguments' => array(1),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_stop_form', 
+      entity_get_controller('stop')->create(), 1),
+    'weight' => 1,
+    'menu_name' => 'gtfs_manager',
+    'access arguments' => array('administer gtfs'),
+    'file' => 'stop.pages.inc',
+  );
+
+  //Show and agencies routes
+  $items['route/%route/stops'] = array(
+    'title callback' => 'route_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'gtfs_manager_route_stops_view',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'file' => 'stop.pages.inc',
+  );
+
+  ////////////STOP/////////////////
+
+  // Edit a stop
+  $items['stop/%stop/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'stop_page_edit',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'stop.pages.inc',
+  );
+
+  // Delete a stop
+  $items['stop/%stop/delete'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('stop_delete_confirm', 1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'file' => 'stop.pages.inc',
+   );
+
+  ///////////CALENDAR//MENUS////////////////////
+  /* 
+  // Add calendar link
+  $items['route/%route/calendar/add'] = array(
+    'title' => 'Add a new calendar',
+    'title callback' => 'check_plain',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_calendar_form', entity_get_controller('calendar')->create()),
+    'weight' => 1,
+    'menu_name' => 'gtfs_manager',
+    'access arguments' => array('administer gtfs'),
+    'file' => 'calendar.pages.inc',
+  );
+
+  // show a calendar
+  $items['calendar/%calendar'] = array(
+    'title callback' => 'calendar_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'gtfs_manager_calendar_detail',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_CALLBACK,
+    'file' => 'calendar.pages.inc',
+  );
+
+  // edit a calendar
+  $items['calendar/%calendar/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'calendar_page_edit',
+    'page arguments' => array(1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'calendar.pages.inc',
+  );
+
+  // delete a calendar
+  $items['calendar/%calendar/delete'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('calendar_delete_confirm', 1),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'file' => 'calendar.pages.inc',
+   );
+  */
+  ////////////////////////////////////
+
+  /*
+  // Add trip link
+  $items['admin/config/gtfs_manager/trips'] = array(
+    'title' => 'GTFS Trip entry form',
+    'description' => 'Add new trips here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_trip_form'),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'trip.pages.inc',
+  );
+
+  //Add route link
+  $items['admin/config/gtfs_manager/routes'] = array(
+    'title' => 'GTFS Route entry form',
+    'description' => 'Add new Routes here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_route_form'),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  
+  // Show route stops link
+  $items['admin/config/gtfs_manager/route/stops/%'] = array(
+    'title' => 'Stops',
+    'page callback' => 'gtfs_manager_route_stops_view',
+    'page arguments' => array(5),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  // View the details of a stop
+  $items['admin/config/gtfs_manager/stop/view/%'] = array(
+    'title' => 'Showing stop at -StopNamePlaceholder',
+    'page callback' => 'gtfs_manager_show_stop_detail',
+    'page arguments' => array(5),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/gtfs_manager/stop/delete/%'] = array(
+    'title' => 'Showing stop at -StopNamePlaceholder',
+    'page callback' => 'gtfs_manager_delete_stop',
+    'page arguments' => array(5),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  //Add schedule link
+    $items['admin/config/gtfs_manager/schedules'] = array(
+    'title' => 'GTFS Schedule entry form',
+    'description' => 'Add new Schedules here',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_schedule_form'),
+    'access arguments' => array('administer gtfs'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  */
+
+  return $items;
+}
+
+
+/**
+ * Form builder; create and display the form for a new stop
+ */
+/*
+function gtfs_manager_stop_form($form, &$form_state) {
+  //Textfield for stop name
+  $form['gtfs_manager_stop_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name for this stop. example: Truro'),
+    '#description' => t('The name of this stop'),
+    '#size' => 40,
+    '#required' => TRUE,
+  );
+
+  // Text area for stop description
+  $form['gtfs_manager_stop_desc'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Stop description'),
+    '#description' => t('Add details specific to this stop here.'),
+    '#cols' => 40,
+    '#rows' => 6,
+  );
+
+  //tetfield for stop lattitude
+  $form['gtfs_manager_stop_lat'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Lattitude for this this stop location'),
+    '#description' => t('The lattitude for this stop'),
+    '#size' => 24,
+    '#required' => TRUE,
+  );  
+
+  //tetfield for stop longitude
+  $form['gtfs_manager_stop_long'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Longitude for this this stop location'),
+    '#description' => t('The longitude for this stop'),
+    '#size' => 24,
+    '#required' => TRUE,
+  ); 
+
+  $form['gtfs_manager_wheelchair_boarding'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Has wheelchair access'),
+  );
+
+  //timepicker for stop arrival time
+  $form['gtfs_manager_stop_arrival_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Arrival Time for this stop'),
+    '#description' => t('The arrival time'),
+    '#attributes' => array('class' => array('form-time')),
+    '#size' => 20,
+    '#required' => TRUE,
+  );
+
+  //timepicker for stop arrival time
+  $form['gtfs_manager_stop_departure_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Departure Time for this stop'),
+    '#description' => t('The departure time'),
+    '#attributes' => array('class' => array('form-time')),
+    '#size' =>20,
+    '#required' => TRUE,
+  );
+
+  //tetfield for stop sequence number
+  $form['gtfs_manager_stop_sequence_number'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Sequence number of this stop'),
+    '#description' => t('The stop sequence number'),
+    '#size' => 3,
+    '#required' => TRUE,
+  );
+
+  //Submit button to create a stop
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Stop'),
+  );
+  
+  return $form;
+}
+
+/**
+ * Implements hook_form_submit().
+ *
+ * Submits the stop form
+ */
+/*
+function gtfs_manager_stop_form_submit($form, &$form_state) {
+  
+  $sid = db_insert('stops')
+    ->fields(array(
+      'stop_name' => $form_state['values']['gtfs_manager_stop_name'],
+      'stop_desc' => $form_state['values']['gtfs_manager_stop_desc'],
+      'stop_lat' => $form_state['values']['gtfs_manager_stop_lat'],
+      'stop_long' => $form_state['values']['gtfs_manager_stop_long'],
+      'wheelchair_boarding' => $form_state['values']['gtfs_manager_wheelchair_boarding'],
+    ))
+    ->execute();
+
+  drupal_set_message(t('Your stop has been submitted'));
+}
+*/
+
+
+//Agency Functions
+
+/**
+ * Agency uri callback
+ */
+function agency_uri($agency) {
+  return array('path' => 'agency/' . $agency->aid,);
+}
+
+/**
+ * Route uri callback
+ */
+function route_uri($route) {
+  return array('path' => 'route/' . $route->rid,);
+}
+
+/**
+ * Load agency entities from the database
+ *
+ * This function should be used if you need more than one agency.
+ * Agencies are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $aids an array of agency ids
+ * @param $reset wheter to reset the cache
+ *
+ * @return an array of agency objects indexed by aid.
+ */
+function agency_load_multiple($aids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('agency', $aids, $conditions, $reset);
+}
+/**
+ * Load and agency object from the database
+ * @param $aid the agency id
+ * @param $reset whether to reset the agency cache
+ *
+ * @return a fully populated node object
+ */
+
+function agency_load($aid = null, $reset = FALSE) {
+  $aids = (isset($aid) ? array($aid) : array());
+  $conditions = array();
+  $agency = agency_load_multiple($aids, $conditions, $reset);
+  return $agency ? reset($agency) : FALSE;
+}
+
+/**
+ * Deletes an agency by id
+ *
+ * @param $aid the id of the agency
+ *
+ * @return TRUE on successful delete, FALSE otherwise
+ */
+function agency_delete($aid) {
+  return agency_delete_multiple(array($aid));
+}
+
+/**
+ * Deletes multiple agenies by id
+ *
+ * @param $aids an array of agency ids
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
+function agency_delete_multiple($aids) {
+  return entity_get_controller('agency')->delete($aids);
+}
+
+/**
+ * @param $agency an agency object
+ *
+ * @return the formatted page title
+ */
+function agency_page_title($agency) {
+  return t('Showing agency @name', array('@name' => $agency->agency_name));
+}
+
+/**
+ * Save a new or updated agency
+ *
+ * @param $agency a populated agency object
+ */
+function agency_save($agency) {
+  return entity_get_controller('agency')->save($agency);
+}
+
+/**
+ * Load route entities from the database
+ *
+ * This function should be used if you need more than one route.
+ * Routes are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $rids an array of route ids
+ * @param $reset wheter to reset the cache
+ *
+ * @return an array of route objects indexed by rid.
+ */
+function route_load_multiple($rids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('route', $rids, $conditions, $reset);
+}
+
+/**
+ * Load route object from the database
+ * @param $rid the route id
+ * @param $reset whether to reset the cache
+ *
+ * @return a fully populated route object
+ */
+
+function route_load($rid = null, $reset = FALSE) {
+  $rids = (isset($rid) ? array($rid) : array());
+  $conditions = array();
+  $route = route_load_multiple($rids, $conditions, $reset);
+  return $route ? reset($route) : FALSE;
+}
+
+/**
+ * Deletes an route by id
+ *
+ * @param $rid the id of the route
+ *
+ * @return TRUE on successful delete, FALSE otherwise
+ */
+function route_delete($rid) {
+  return route_delete_multiple(array($rid));
+}
+
+/**
+ * Deletes multiple routes by id
+ *
+ * @param $aids an array of route ids
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
+function route_delete_multiple($rids) {
+  return entity_get_controller('route')->delete($rids);
+}
+
+/**
+ * @param $route a route object
+ *
+ * @return the formatted page title
+ */
+function route_page_title($route) {
+  return t('Showing route @name', array('@name' => $route->route_long_name));
+}
+
+/**
+ * Save a new or updated route
+ *
+ * @param $route a populated route object
+ */
+function route_save($route) {
+  watchdog('route', 'in route save ' . $route->rid);
+  return entity_get_controller('route')->save($route);
+}
+
+/////TRIPS///////////////////
+
+/**
+ * Load trip entities from the database
+ *
+ * This function should be used if you need more than one trip.
+ * Trips are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $tids an array of route ids
+ * @param $reset wheter to reset the cache
+ *
+ * @return an array of trips objects indexed by rid.
+ */
+function trip_load_multiple($tids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('trip', $tids, $conditions, $reset);
+}
+
+/**
+ * Load trip object from the database
+ * @param $tid the trip id
+ * @param $reset whether to reset the cache
+ *
+ * @return a fully populated trip object
+ */
+
+function trip_load($tid = null, $reset = FALSE) {
+  $tids = (isset($tid) ? array($tid) : array());
+  $conditions = array();
+  $trip = route_load_multiple($tids, $conditions, $reset);
+  return $trip ? reset($trip) : FALSE;
+}
+
+/**
+ * Deletes an trip given the id
+ *
+ * @param $tid the id of the trip
+ *
+ * @return TRUE on successful delete, FALSE otherwise
+ */
+function trip_delete($tid) {
+  return trip_delete_multiple(array($tid));
+}
+
+/**
+ * Deletes multiple routes by id
+ *
+ * @param $aids an array of route ids
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
+function trip_delete_multiple($tids) {
+  return entity_get_controller('trip')->delete($tids);
+}
+
+/**
+ * @param $route a route object
+ *
+ * @return the formatted page title
+ */
+function trip_page_title($trip) {
+  return t('Showing trip');
+}
+
+/**
+ * Save a new or updated route
+ *
+ * @param $route a populated route object
+ */
+function trip_save($trip) {
+  return entity_get_controller('trip')->save($trip);
+}
+
+//////////STOP//////////////////
+/**
+ * Load stop entities from the database
+ *
+ * This function should be used if you need more than one stop.
+ * Stops are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $sids an array of stop ids
+ * @param $reset wheter to reset the cache
+ *
+ * @return an array of stop objects indexed by sid.
+ */
+function stop_load_multiple($sids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_get_controller('stop')->getStops($sids, $conditions);
+}
+
+/**
+ * Load stop object from the database
+ * @param $sid the stop id
+ * @param $reset whether to reset the cache
+ *
+ * @return a fully populated stop object
+ */
+function stop_load($sid = null, $reset = FALSE) {
+  $sids = (isset($sid) ? array($sid) : array());
+  $conditions = array();
+  $stops = stop_load_multiple($sids, $conditions, $reset);
+  return $stops ? reset($stops) : FALSE;
+}
+
+/**
+ * Deletes an stop given the sid
+ *
+ * @param $sid the id of the stop
+ *
+ * @return TRUE on successful delete, FALSE otherwise
+ */
+function stop_delete($sid) {
+  return stop_delete_multiple(array($sid));
+}
+
+/**
+ * Deletes multiple stops by sid
+ *
+ * @param $sids an array of stop ids
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
+function stop_delete_multiple($sids) {
+  return entity_get_controller('stop')->delete($sids);
+}
+
+/**
+ * @param $stop a populated stop object
+ *
+ * @return the formatted page title
+ */
+function stop_page_title($stop) {
+  return t('Showing stop @name', array('@name' => $stop->stop_name));
+}
+
+/**
+ * Save a new or updated stop
+ *
+ * @param $stop a populated stop object
+ */
+function stop_save($stop) {
+  return entity_get_controller('stop')->save($stop);
+}
+
+//////////STOP//TIMES//////////////////
+/**
+ * Load stop time entities from the database
+ *
+ * This function should be used if you need more than one stop time.
+ * Stop times are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $ids an array of stop ids and trip ids
+ * @param $reset wheter to reset the cache
+ *
+ * @return an array of stop time objects indexed by id.
+ */
+function stop_time_load_multiple($tids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('stop_time', $tids, $conditions, $reset);
+}
+
+/**
+ * Load stop time object from the database
+ * @param $id the stop id and trip id
+ * @param $reset whether to reset the cache
+ *
+ * @return a fully populated stop object
+ */
+function stop_time_load($tid = null, $reset = FALSE) {
+  $tids = (isset($tid) ? array($tid) : array());
+  $conditions = array();
+  $stop_time = route_load_multiple($ids, $conditions, $reset);
+  return $stop_time ? reset($stop_time) : FALSE;
+}
+
+/**
+ * Deletes an stop time given the sid and tid
+ *
+ * @param $sid the stop id
+ * @param $tid the trip id 
+ *
+ * @return TRUE on successful delete, FALSE otherwise
+ */
+function stop_time_delete($tid, $sid) {
+  return stop_time_delete_multiple(array($tid, $sid));
+}
+
+/**
+ * Deletes multiple stops by sid and tid
+ *
+ * @param $sids an array of stop ids
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
+function stop_time_delete_multiple($ids) {
+  return entity_get_controller('stop_time')->delete($ids);
+}
+
+/**
+ * @param $stop_time a populated stop time object
+ *
+ * @return the formatted page title
+ */
+function stop_time_page_title($stop_time) {
+  return t('Showing stop a stop time');
+}
+
+/**
+ * Save a new or updated stop time
+ *
+ * @param $stop_time a populated stop_time object
+ */
+function stop_time_save($stop_time) {
+  return entity_get_controller('stop_time')->save($stop_time);
+}
+
+/////////CALENDAR////////////////////
+
+/**
+ * Load calendar entities from the database
+ *
+ * This function should be used if you need more than one calendar.
+ * Calendars are loaded into memory and will not require database
+ * access if loaded again during the same page request
+ *
+ * @see entity_load()
+ *
+ * @param $service_ids an array of service ids
+ * @param $reset whether to reset the cache
+ *
+ * @return an array of calendar objects indexed by service_id.
+ */
+function calendar_load_multiple($service_ids = array(), $conditions = array(), 
+				$reset = FALSE) {
+  return entity_load('calendar', $service_ids, $conditions, $reset);
+}
+
+/**
+ * Load and calendar object from the database
+ * @param $service the service id
+ * @param $reset whether to reset the calendar cache
+ *
+ * @return a fully populated calendar object
+ */
+function calendar_load($service_id = null, $reset = FALSE) {
+  $service_ids = (isset($service_id) ? array($service_id) : array());
+  $conditions = array();
+  $calendar = agency_load_multiple($service_ids, $conditions, $reset);
+  return $calendar ? reset($calendar) : FALSE;
+}
+
+/**
+ * Deletes a calendar by service id
+ *
+ * @param $service_id the unique id for the calendar record
+ *
+ * @return TRUE on successful delete, FALSE otherwise
+ */
+function calendar_delete($service_id) {
+  return calendar_delete_multiple(array($service_id));
+}
+
+/**
+ * Deletes multiple calendar records by service_id
+ *
+ * @param $service_ids an array of service ids
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
+function calendar_delete_multiple($aids) {
+  return entity_get_controller('calendar')->delete($service_ids);
+}
+
+/**
+ * @param $calendar a populated calendar object
+ *
+ * @return the formatted page title
+ */
+function calendar_page_title($calendar) {
+  return t('Showing Calendar operating @from to @to', 
+	   array('@from' => $calendar->start_date, '@to' => $calendar->end_date)
+  );
+}
+
+/**
+ * Save a new or updated calendar
+ *
+ * @param $calendar a populated calendar object
+ */
+function calendar_save($calendar) {
+  return entity_get_controller('calendar')->save($calendar);
+}
+
+///////////////////////////////////////////////////////////////
+/**
+ *
+ * the functions that follow should be moved
+ * to become entity methods or page functions
+ *
+ *
+ */
+
+/**
+ * Fetches all of the calendars in the database
+ * doesn't have to be related to any agency, route, or trip
+ */
+function gtfs_manager_fetch_services(){
+  $options = array();
+
+  $calendars = calendar_load_multiple(FALSE);
+
+  if ($calendars) {
+    foreach ($calendars as $calendar) {
+      //format calendar for select field
+      
+      //collect start and end date and remove them from array
+      $start_end_dates_string = 
+	format_date($calendar->start_date, GTFS_MANAGER_DATE_FORMAT) 
+	. ' to ' 
+	. format_date($calendar->end_date, GTFS_MANAGER_DATE_FORMAT);
+      unset($calendar->start_date);
+      unset($calendar->end_date);
+      
+      //grab the service_id
+      $service_id = $calendar->service_id;
+      unset($calendar->service_id);
+      unset($calendar->created_at);
+      unset($calendar->updated_at);
+      unset($calendar->created_by);
+      unset($calendar->updated_by);
+
+      $days_string = '';
+      
+      foreach ($calendar as $day => $is_scheduled) {
+	if ($is_scheduled){
+	  $day = ($day == 'thursday') ? 'R' : ucfirst($day[0]);
+	  $days_string .= $day;
+	}
+      }
+      
+      $option[$service_id] = $start_end_dates_string 
+	. ' | ' 
+	. $days_string;
+      array_push($options, $option);
+    }
+  }
+  return $options;
+}
+
+
+
+/**
+ * @param $aid the agency id
+ * @return the list of routes associated with this agency formatted for a select
+ */
+function gtfs_manager_agency_routes_view($aid) {
+  $result = 
+    db_query('select * from {routes} where aid = :aid', array(':aid' => $aid));
+
+  $routes['title'] = t('Showing all routes for -AgnecyNamePlaceholder');
+  $routes['items'] = array();
+  
+
+  if ($result) {
+    while ($route = $result->fetchAssoc()) {
+      $link = l($route['route_long_name'], 
+		'admin/config/gtfs_manager/route/stops/' 
+		. $route['rid']
+		);
+
+      $link .= ' | ';
+
+      $link .= l('Edit', 
+		'admin/config/gtfs_manager/routes/edit/' 
+		. $route['rid']
+		);
+
+      $link .= ' | ';
+
+      $link .= l('Remove', 
+		'admin/config/gtfs_manager/routes/delete/' 
+		. $route['rid']
+		);
+
+      array_push($routes['items'], $link);
+		
+    }
+  }
+  return theme('item_list', $routes);
+}
+
+/**
+ * @param $rid the route id
+ * @return the stops assciated with this route
+ */
+/*
+function gtfs_manager_route_stops_view($rid) {
+  $query = 'select s.stop_name, t.tid as trip_id from routes r join trips t'
+    . ' on t.rid = r.rid'
+    . ' join stop_times st'
+    . ' on st.tid = t.tid'
+    . ' join stops s'
+    . ' on s.sid = st.sid'
+    . ' where r.aid = :route_id';
+
+  $result 
+    = db_query($query, array(':route_id' => $rid));
+
+  $stops['title'] = t('Showing all stops for -RouteNamePlaceholder');
+  $stops['items'] = array();
+  
+
+  if ($result) {
+    while ($stop = $result->fetchAssoc()) {
+      $link = l($stop['stop_name'], 
+		'admin/config/gtfs_manager/stop/view/' 
+		. $stop['trip_id']
+		);
+
+      $link .= ' | ';
+
+      $link .= l('Edit', 
+		'admin/config/gtfs_manager/stop/edit/' 
+		 . $stop['trip_id']
+	       );
+
+      array_push($stops['items'], $link);
+    }
+  }
+  return theme('item_list', $stops);
+}
+*/
+
+/**
+ * Returns the data needed to populate the stop detail template
+ *
+ * @param $tid the trip id
+ * @returns trip/stop/stop_time detail
+ */
+function gtfs_manager_show_stop_detail($tid) {
+  $query = 'select * from trips t'
+    . ' join stop_times st'
+    . ' on st.tid = t.tid'
+    . ' join stops s'
+    . ' on s.sid = st.sid'
+    . ' join calendar c '
+    . ' on c.service_id = t.service_id '
+    . ' where t.tid = :trip_id';
+
+  $result = db_query($query, array(':trip_id' => $tid));
+
+  if ($result) {
+    $stop = $result->fetchAssoc();
+  }
+  
+  $variables['stop'] = $stop;
+
+  return theme('gtfs_manager_trip_detail', $variables);
+}
+
+/**
+ * Removes trip, stop, and stop time associated with the given trip id
+ * Also reorders the sequence numbers if required
+ * @param $tid the trip id of the stop begin removed
+ */
+function gtfs_manager_delete_stop($tid) {
+
+}
