@@ -30,7 +30,10 @@ class StopTimeController extends DrupalDefaultEntityController {
     try {
       global $user;
       //determine if stop time is new
-      $stop_time->is_new = (isset($stop_time->sid)  && isset($stop_time->tid));
+      $stop_time->is_new = 
+	!db_query('select 1 from {stop_times} where sid = :sid and tid = :tid', 
+		 array(':sid' => $stop_time->sid, ':tid' => $stop_time->tid))
+	->fetchField();
 
       //set timestamps
       if (empty($stop_time->created_at)) {
@@ -103,35 +106,31 @@ class StopTimeController extends DrupalDefaultEntityController {
   }
 
   public function delete($ids) {
+    
+    $transaction = db_transaction();
+    
     if (!empty($ids)) {
-      $routes = $this->load($ids, array());
-      $transaction = db_transaction();
-
       try {
-	db_delete('stop_times')
-	  ->condition(array('sid', 'tid'), $ids, '=')
-	  ->execute();
-
-	foreach ($stop_times as $stop_id => $stop_time) {
-	  field_attach_delete('stop_time', $stop_time);
+	foreach ($ids as $sid_tid) {
+	  db_delete('stop_times')
+	    ->condition('sid', $sid_tid['sid'], '=')
+	    ->condition('tid', $sid_tid['tid'], '=')
+	    ->execute();
 	}
-
+	
 	db_ignore_slave();
-
       } catch (Exception $e) {
 	$transaction->rollback();
 	watchdog_exception('stop_time', $e, NULL, WATCHDOG_ERROR);
 	return FALSE;
       }
-
-      module_invoke_all('entity_delete', $stop_time, 'stop_time');
-
+      
       //Clear the page, block, and route caches
       cache_clear_all();
       $this->resetCache();
     }
     return TRUE;
   }
-
+  
 
 }

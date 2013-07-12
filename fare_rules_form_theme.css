@@ -1,0 +1,10 @@
+tr:hover { 
+           background-color: yellow;
+}
+
+th, select { font-size: 80% }
+
+th, td, select, tr { 
+  padding: 0;
+  margin: 0;
+}

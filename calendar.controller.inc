@@ -75,19 +75,15 @@ class CalendarController extends DrupalDefaultEntityController {
     }
   }
 
-  public function delete($aids) {
-    if (!empty($aids)) {
-      $agencies = $this->load($aids, array());
+  public function delete($service_ids) {
+    if (!empty($service_ids)) {
+
       $transaction = db_transaction();
 
       try {
 	db_delete('calendar')
-	  ->condition('aid', $aids, 'IN')
+	  ->condition('service_id', $service_ids, 'IN')
 	  ->execute();
-
-	foreach ($calendars as $calendar_id => $calendar) {
-	  field_attach_delete('calendar', $calendar);
-	}
 
 	db_ignore_slave();
 
@@ -96,8 +92,6 @@ class CalendarController extends DrupalDefaultEntityController {
 	watchdog_exception('calendar', $e, NULL, WATCHDOG_ERROR);
 	return FALSE;
       }
-
-      module_invoke_all('entity_delete', $calendar, 'calendar');
 
       //Clear the page, block, and calendar caches
       cache_clear_all();

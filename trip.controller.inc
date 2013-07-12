@@ -72,19 +72,15 @@ class TripController extends DrupalDefaultEntityController {
     }
   }
 
-  public function delete($rids) {
+  public function delete($tids) {
     if (!empty($tids)) {
-      $trips = $this->load($tids, array());
+      
       $transaction = db_transaction();
 
       try {
 	db_delete('trips')
 	  ->condition('tid', $tids, 'IN')
 	  ->execute();
-
-	foreach ($trips as $trip_id => $trip) {
-	  field_attach_delete('trip', $trip);
-	}
 
 	db_ignore_slave();
 
@@ -93,8 +89,6 @@ class TripController extends DrupalDefaultEntityController {
 	watchdog_exception('trip', $e, NULL, WATCHDOG_ERROR);
 	return FALSE;
       }
-
-      module_invoke_all('entity_delete', $trip, 'trip');
 
       //Clear the page, block, and route caches
       cache_clear_all();

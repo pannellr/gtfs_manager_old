@@ -8,6 +8,7 @@ package = GTFS manager
 
 files[] = gtfs_manager.module
 files[] = gtfs_manager.install
+
 files[] = agency.controller.inc
 files[] = agency.pages.inc
 files[] = route.controller.inc
@@ -20,7 +21,25 @@ files[] = trip.controller.inc
 files[] = trip.pages.inc
 files[] = calendar.controller.inc
 files[] = calendar.pages.inc
+files[] = calendar_date.controller.inc
 files[] = transportation_type.controller.inc
 files[] = transportation_type.pages.inc
 files[] = transfer.controller.inc
 files[] = user_search.controller.inc
+files[] = user_search.pages.inc
+files[] = service_area.controller.inc
+files[] = service_area_point.controller.inc
+files[] = zombie.pages.inc
+files[] = province.controller.inc
+files[] = time_zone.controller.inc
+files[] = fare.pages.inc
+files[] = fare.controller.inc
+files[] = fare_rule.controller.inc
+files[] = service_feature.controller.inc
+files[] = service_feature.pages.inc
+files[] = agency_service_feature.controller.inc
+files[] = route_service_feature.controller.inc
+files[] = stop_service_feature.controller.inc
+
+
+scripts[] = gtfs_manager.js

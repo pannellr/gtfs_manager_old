@@ -10,7 +10,7 @@ function gtfs_manager_route_form($form, &$form_state, $route = null, $agency = n
 
   //set the id to identify this as the route edit form
   $form['#id'] = 'route-form';
-
+  $form['#tree'] = TRUE;
   //save the route for later
   $form['#route'] = $route;
   $form_state['route'] = $route;
@@ -43,7 +43,7 @@ function gtfs_manager_route_form($form, &$form_state, $route = null, $agency = n
   //Text field for route name
   $form['gtfs_manager_route_desc'] = array(
     '#type' => 'textarea',
-    '#title' => t('Descriprion of route.'),
+    '#title' => t('Description of route.'),
     '#description' => t('This would be a good place to include information not captured by this database.  Like stops the service is willing to make as an exception.'),
     '#default_value' => $route->route_desc,
     '#rows' => 12,
@@ -64,9 +64,29 @@ function gtfs_manager_route_form($form, &$form_state, $route = null, $agency = n
     '#type' => 'select',
     '#title' => t('Transportation Type'),
     '#description' => t('The transportation type for this route'),
-    '#default_value' => $route->route_type_id,
+    '#default_value' => $route->transportation_type_id,
     '#options' => fetch_transportation_types(),
     '#required' => TRUE,
+  );
+
+  $form['gtfs_manager_service_type'] = array(
+    '#type' => 'radios',
+    '#title' => 'Service Type',
+    '#options' => array(0 => t('Fixed Route'), 1 => t('Service Area')),
+    '#default_value' => 0,
+  );
+
+  $form['gtfs_manager_service_area_points'] = array(
+    '#type' => 'textarea',
+    '#field_suffix' => '<div id="polygon-canvas-container"></div>',
+    '#attributes' => array(
+      'class' => array('polygon-coordinates'),
+    ),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="gtfs_manager_service_type"]' => array('value' => 1),
+      )
+    )
   );
 
   // Add the buttons
@@ -76,6 +96,9 @@ function gtfs_manager_route_form($form, &$form_state, $route = null, $agency = n
     '#type' => 'submit',
     '#value' => t('Save Route'),
     '#weight' => 5,
+    '#attributes' => array(
+      'class' => array('route-submit-button'),
+     ),
     '#submit' => array('gtfs_manager_route_form_submit'),
   );
   
@@ -87,6 +110,21 @@ function gtfs_manager_route_form($form, &$form_state, $route = null, $agency = n
       '#submit' => array('gtfs_manager_route_form_delete_submit'),
     );
   }
+
+  $path = drupal_get_path('module', 'gtfs_manager');
+ 
+  $form['#attached'] = array('css' => array(
+					    'type' => 'file',
+					    'data' => $path 
+					    . '/route_form_theme.css',
+					    ),
+			     'js' => array(
+					    'type' => 'file',
+					    'data' => $path 
+					    . '/route_form.js',
+					    ),
+			
+			     );
 
   $form['#validate'][] = 'gtfs_manager_route_form_validate';
 
@@ -100,9 +138,7 @@ function gtfs_manager_route_form($form, &$form_state, $route = null, $agency = n
  * Implements hook_validate() for route submissions
  */
 function gtfs_manager_route_form_validate($form, &$form_state) {
-  $route = $form_state['route'];
 
-  //Field validations
 }
 
 /**
@@ -112,12 +148,16 @@ function gtfs_manager_route_form_submit($form, &$form_state) {
   global $user;
 
   $route = $form_state['route'];
+  $service_area = entity_get_controller('service_area')->create();
+
   // if this is a new record
   if (empty($route->created_by)) {
     $route->created_by = $user->name;
+    $service_area->created_by = $user->name;
   }
 
   $route->updated_by = $user->name;
+  $service_area->updated_by = $user->name;
 
   $route->aid = $form_state['values']['gtfs_manager_aid'];
   $route->route_short_name = $form_state['values']['gtfs_manager_route_short_name'];
@@ -132,6 +172,34 @@ function gtfs_manager_route_form_submit($form, &$form_state) {
 
   //Save
   route_save($route);
+
+  //create a routes_service_area_record  
+  $service_area->rid = $route->rid;
+  service_area_save($service_area);
+
+  //split the points from the form
+  $points = explode(',', $form_state['values']['gtfs_manager_service_area_points']);
+  //unpack
+  foreach ($points as $point) {
+    $point_values = explode('|', $point);
+    //NEED VALIDATION SOMEWHERE--MUST BE AT LEAST 3 POINTS
+    $service_area_point = entity_get_controller('service_area_point')->create();
+    $service_area_point->created_by = $user->name;
+    $service_area->updated_by_by = $user->name;
+    $service_area_point->service_area_id = $service_area->service_area_id;
+
+    foreach ($point_values as $key_val_string) {
+      if (!empty($key_val_string)) {
+	watchdog('key_val_string', $key_val_string);
+	$key_val = explode(':', $key_val_string);
+	$service_area_point->{$key_val[0]} = $key_val[1];
+      }
+    }
+    //insert
+    service_area_point_save($service_area_point);
+  }
+		    
+  //gtfs_manager_service_area_points
 
   drupal_set_message(t('Route saved'));
 
@@ -175,13 +243,11 @@ function route_delete_confirm_submit($form, &$form_state) {
     route_delete($form_state['values']['rid']);
   }
 
-  watchdog('route', '@name deleted.', array('@name' => $route->route_long_name));
-
   drupal_set_message(t('The route %name has been deleted.', 
     array('%name' => $route->route_long_name)
   ));
 
-  $form_state['redirect'] = 'agency/' . $route->aid . 'routes/view';
+  $form_state['redirect'] = 'agency/' . $route->aid . '/routes/view';
 }
 
 

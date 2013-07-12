@@ -14,10 +14,11 @@ class StopController extends DrupalDefaultEntityController {
       'sid' => $sid,
       'stop_name' => '',
       'stop_desc' => '',
-      'stop_northing' => '',
-      'stop_easting' => '',
-      'utm_zone' => '',
+      'stop_lat' => '',
+      'stop_long' => '',
       'wheelchair_boarding' => '',
+      'province_id' => '',
+      'time_zone_id' => '',
       'created_at' => '',
       'updated_at' => '',
       'created_by' => '',
@@ -27,11 +28,19 @@ class StopController extends DrupalDefaultEntityController {
       'arrival_time' => '',
       'departure_time' => '',
       'stop_sequence' => '',
-      'start_date' => '',
-      'end_date' => '',
-      'days' => array(),
+      'start_date' => time(),
+      'end_date' => time(),
+      'days' => drupal_map_assoc(array(
+		      t('monday'), 
+		      t('tuesday'), 
+		      t('wednesday'),
+		      t('thursday'),
+		      t('friday'),
+		      t('saturday'),
+		      t('sunday')
+				       )),
       'monday' => '',
-      'teusday' => '',
+      'tuesday' => '',
       'wednesday' => '',
       'thursday' => '',
       'friday' => '',
@@ -92,19 +101,17 @@ class StopController extends DrupalDefaultEntityController {
     }
   }
 
-  public function delete($ids) {
+  public function delete($sids) {
     if (!empty($sids)) {
-      $stops = $this->load($sids, array());
+      
       $transaction = db_transaction();
 
       try {
-	db_delete('stops')
-	  ->condition('tid', $ids[0], '=')
-	  ->condition('sid', $ids[1], '=')
-	  ->execute();
-
-	foreach ($stops as $stop_id => $stop) {
-	  field_attach_delete('stop', $stop);
+        
+	foreach ($sids as $sid) {
+	  db_delete('stops')
+	    ->condition('sid', $sid, '=')
+	    ->execute();
 	}
 
 	db_ignore_slave();
@@ -115,8 +122,6 @@ class StopController extends DrupalDefaultEntityController {
 	return FALSE;
       }
 
-      module_invoke_all('entity_delete', $stop, 'stop');
-
       //Clear the page, block, and stop caches
       cache_clear_all();
       $this->resetCache();
@@ -124,12 +129,12 @@ class StopController extends DrupalDefaultEntityController {
     return TRUE;
   }
 
-  public function getStops($sids, $conditions) {
+  public function getStops($sids, $conditions = array()) {
     $stops = array();
     $where = '';
     $where_args = array();
     
-    if ($sids) {
+    if (!empty($sids)) {
       if (sizeof($sids) > 1) {
 	$where = 's.sid in :sids';
 	$where_args = array(':sids' => '(' . join(',', $sids) . ')');
@@ -137,25 +142,62 @@ class StopController extends DrupalDefaultEntityController {
 	$where = 's.sid = :sid';
 	$where_args = array(':sid' => $sids[0]);
       }
-    } else {
-      
+    } else {      
       $where = 't.rid = :rid';
       $where_args = array(':rid' => $conditions[1]);
     }
 
+    $query = 'select s.sid ' 
+      .  ' ,  s.stop_name '
+      .  ' ,  s.stop_desc '
+      .  ' ,  s.stop_lat '
+      .  ' ,  s.stop_long '
+      .  ' ,  s.wheelchair_boarding '
+      .  ' ,  s.province_id '
+      .  ' ,  s.time_zone_id '
+      .  ' ,  st.arrival_time '
+      .  ' ,  st.departure_time '
+      .  ' ,  st.stop_sequence '
+      .  ' ,  t.tid '
+      .  ' ,  t.rid ' 
+      .  ' ,  t.service_id '
+      .  ' ,  c.start_date '
+      .  ' ,  c.end_date '
+      .  ' ,  c.monday '
+      .  ' ,  c.tuesday '
+      .  ' ,  c.wednesday '
+      .  ' ,  c.thursday '
+      .  ' ,  c.friday '
+      .  ' ,  c.saturday '
+      .  ' ,  c.sunday '
+      .  ' ,  p.name as province_name '
+      .  ' ,  p.code as province_code '
+      .  ' ,  tz.name as time_zone_name '
+      .  ' ,  tz.offset as tz_offset '
+      .  ' from '
+      .  ' {trips} t '
+      .  ' join {stop_times} st on st.tid = t.tid '
+      .  ' join {stops} s on s.sid = st.sid '
+      .  ' join {calendar} c on c.service_id = t.service_id '
+      .  ' join {provinces} p on p.province_id = s.province_id '
+      .  ' join {time_zones} tz on tz.time_zone_id = s.time_zone_id '
+      .  ' where ' 
+      . $where 
+      . ' order by st.stop_sequence ';
+
     $result =
-      db_query('select * from {trips} t join {stop_times} st on st.tid = t.tid join {stops} s on s.sid = st.sid join {calendar} c on c.service_id = t.service_id where ' . $where, $where_args);
+      db_query($query, $where_args);
 
     if ($result) {
       while ($stop = $result->fetchObject()) {
 	$days = array();
-	$days['monday'] = ($stop->monday == 1) ? 'monday' : '';
-	$days['tuesday'] = ($stop->tuesday == 1) ? 'tuesday' : '';
-	$days['wednesday'] = ($stop->monday == 1) ? 'wednesday' : '';
-	$days['thursday'] = ($stop->thursday == 1) ? 'thursday' : '';
-	$days['friday'] = ($stop->friday == 1) ? 'friday' : '';
-	$days['saturday'] = ($stop->saturday == 1) ? 'saturday' : '';
-	$days['sunday'] = ($stop->sunday == 1) ? 'sunday' : '';
+	if ($stop->monday == 1) { $days['monday'] = 'monday'; }
+	if ($stop->tuesday == 1) { $days['tuesday'] = 'tuesday'; }
+	if ($stop->wednesday == 1) { $days['wednesday'] = 'wednesday'; }
+	if ($stop->thursday == 1) { $days['thursday'] = 'thursday'; }
+	if ($stop->friday == 1) { $days['friday'] = 'friday'; }
+	if ($stop->saturday == 1) { $days['saturday'] = 'saturday'; }
+	if ($stop->sunday == 1) { $days['sunday'] = 'sunday'; }
 	$stop->days = $days;
 	array_push($stops, $stop);
       }

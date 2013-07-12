@@ -17,6 +17,7 @@ class UserSearchController extends DrupalDefaultEntityController {
       'ip' => '',
       'geocode' => '',
       'num_results' => '',
+      'return_num_results' => '',
       'created_at' => '',
       'updated_at' => '',
       'created_by' => '',
@@ -30,8 +31,8 @@ public function save($user_search) {
     try {
       global $user;      
 
-      $user_search->created_by = $user->name;
-      $user_search->updated_by = $user->name;
+      $user_search->created_by = isset($user->name) ? $user->name : 'anonymous';
+      $user_search->updated_by = isset($user->name) ? $user->name : 'anonymous';
 
       $user_search->created_at = REQUEST_TIME;
       $user_search->updated_at = REQUEST_TIME;

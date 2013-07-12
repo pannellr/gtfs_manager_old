@@ -208,13 +208,15 @@ function gtfs_manager_all_agencies_view() {
 
   if (!empty($agencies)) {
     foreach ($agencies as $agency) {
-      $link = l($agency->agency_name, 'agency/' . $agency->aid);
- 
+      $link = l($agency->agency_name, 'agency/' . $agency->aid)
+	. ' | ' 
+	. l('View routes', 'agency/' . $agency->aid . '/routes');
+
 	if (user_access('administer gtfs')) {
-	$link .= ' | ' 
-	  . l('View routes', 'agency/' . $agency->aid . '/routes')
+	  $link .= ' | ' 
+	  . l('Add route', 'agency/' . $agency->aid . '/route/add')
 	  . ' | ' 
-	  . l('Add route', 'agency/' . $agency->aid . '/route/add');
+	  . l('Add Feature', 'agency/' . $agency->aid . '/feature/add');
 	}
       array_push($page['items'], $link);
     }
@@ -234,9 +236,7 @@ function agency_routes_page_view($agency, $view_mode = 'full') {
     $link = l($route->route_long_name, 'route/' . $route->rid);
     array_push($list['items'], $link);
   }
-
   return theme('item_list', $list);
-
 }
 
 function gtfs_manager_agency_detail($agency) {
@@ -244,3 +244,62 @@ function gtfs_manager_agency_detail($agency) {
   return theme('gtfs_manager_agency_detail', $variables);
 }
 
+/**
+ * Form builder; create and display the form for a new agency
+ */
+function gtfs_manager_agency_feature_form($form, &$form_state, $agency_service_feature, $agency) {
+  
+  //Set the id to identify this as the agency edit form
+  $form['#id'] = 'agency-service-feature-form';
+
+  // save the agency and service feature objects for later
+  $form['#agency'] = $agency;
+  $form_state['agency'] = $agency;
+  $form_state['agency_service_feature'] = $agency_service_feature;
+
+  $form['create_link'] = array(
+    '#markup' => l('Create a new feature', 'service_feature/new')
+  );
+
+  //checkboxes for all features
+  $form['gtfs_manager_agency_service_feature_ids'] = array(
+    '#type' => 'checkboxes',							
+    '#options' => fetch_service_features(),
+    '#title' => t('Select features provided by this agency'),
+    //'#default_value' => $agency->service_feature_ids
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Agency'),
+    '#weight' => 5,
+    '#submit' => array('gtfs_manager_agency_service_features_form_submit'),
+  );
+    
+  $form['#validate'][] = 'gtfs_manager_agency_service_features_form_validate';
+
+  return $form;
+}
+
+function fetch_service_features() {
+  $result = db_select('service_features', 'sf')
+    ->fields('sf', array('service_feature_id', 'service_feature_name'))
+    ->execute();
+
+  $service_features = array();
+  
+  while ($service_feature = $result->fetchObject()) {
+    $service_features[$service_feature->service_feature_id] 
+      = $service_feature->service_feature_name;
+  }
+
+  return $service_features;
+}
+
+function gtfs_manager_agency_service_features_form_validate($form, &$form_state) {
+
+}
+
+function gtfs_manager_agency_service_features_form_submit($form, &$form_state) {
+
+}

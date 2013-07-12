@@ -105,6 +105,4 @@ class TransportationTypeController extends DrupalDefaultEntityController {
     return TRUE;
   }
 
-
-
 }

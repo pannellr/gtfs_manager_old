@@ -5,19 +5,41 @@
  * 
  */
 ?>
-<?php foreach ($variables['stops'] as $stop) { ?>
-<h1><?php print $stop->stop_name; ?></h1>
+<table class="route-stops-view">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Desc</th>
+      <th>Province</th>
+      <th>TZ</th>
+      <th>Lat</th>
+      <th>Long</th>
+      <th>WC</th>
+      <th>Arrives</th>
+      <th>Departs</th>
+      <th>Sequence</th>
+      <th>Calendar</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
 
-<p><b>Description: </b><?php print $stop->stop_desc; ?></p>
-<p><b>Northing UTM: </b><?php print $stop->stop_northing; ?></p>
-<p><b>Easting UTM: </b><?php print $stop->stop_easting; ?></p>
-<p><b>UTM Zone: </b><?php print $stop->utm_zone; ?></p>
-<p><b>Has Wheelchair Access: </b><?php print $stop->wheelchair_boarding; ?></p>
-<p><b>Arrival Time: </b><?php print $stop->arrival_time; ?></p>
-<p><b>Departure Time: </b><?php print $stop->departure_time; ?></p>
-<p><b>Sequence Number: </b><?php print $stop->stop_sequence; ?></p>
-<p><b>Calendar: </b><?php print $stop->calendar; ?></p>
-<?php print $stop->links; ?> 
-<hr />
+<?php foreach ($variables['stops'] as $stop) { ?>
+  <tr class="stop-row <?php print $stop->sid; ?>">
+    <td><?php print $stop->stop_name; ?></td>
+    <td><?php print $stop->stop_desc; ?></td>
+    <td><?php print $stop->province_name; ?></td>
+    <td><?php print $stop->time_zone_name; ?></td>
+    <td><?php print $stop->stop_lat; ?></td>
+    <td><?php print $stop->stop_long . ' | ' . $stop->map_link; ?></td>
+    <td><?php print $stop->wheelchair_boarding; ?></td>
+    <td><?php print $stop->arrival_time; ?></td>
+    <td><?php print $stop->departure_time; ?></td>
+    <td><?php print $stop->stop_sequence; ?></td>
+    <td><?php print $stop->calendar; ?></td>
+    <td><?php print $stop->links; ?></td> 
+  </tr>
 <?php } ?>
+ </tbody>
+</table>
  <?php print $variables['links']; ?>
