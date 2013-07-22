@@ -15,7 +15,7 @@ class ServiceFeatureController extends DrupalDefaultEntityController {
       'service_feature_type_id' => '',
       'service_feature_name' => '',
       'service_feature_icon_url' => '',
-      'service_feature_info',
+      'service_feature_info' => '',
       'created_at' => '',
       'updated_at' => '',
       'created_by' => '',

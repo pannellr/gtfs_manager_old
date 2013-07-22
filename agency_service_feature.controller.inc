@@ -36,25 +36,14 @@ class AgencyServiceFeatureController extends DrupalDefaultEntityController {
 
       $agency_service_feature->updated_at = REQUEST_TIME;
 
-      // give other modules a chance to prepare field data
-      field_attach_presave('agency_service_feature', $agency_service_feature);
-
       // if this is a new agency_service_feature
       if ($agency_service_feature->is_new) {
 	// Save the agency_service_feature
 	drupal_write_record('agency_service_features', $agency_service_feature);
-	$op = 'insert';
       } else {
 	// update the agency_service_feature
 	drupal_write_record('agency_service_features', $agency_service_feature, 'agency_service_feature_id');
-	$op = 'update';
       }
-
-      // Save fields
-      $function = 'field_attach_' . $op;
-      $function('agency_service_feature', $agency_service_feature);
-
-      module_invoke_all('entity_' . $op, $agency_service_feature, 'agency_service_feature');
 
       // Clear internal properties
       unset($agency_service_feature->is_new);

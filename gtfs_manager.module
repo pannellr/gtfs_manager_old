@@ -32,6 +32,7 @@ function gtfs_manager_preprocess_page(&$vars) {
 /**
  * Implements hook_entity_info
  *
+ * Defines all classes required by the gtfs manager modul
  */
 function gtfs_manager_entity_info() {
   $entities = array();
@@ -51,7 +52,7 @@ function gtfs_manager_entity_info() {
         'label' => t('Agency Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
 $entities['route'] = array(
@@ -69,7 +70,7 @@ $entities['route'] = array(
         'label' => t('Route Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
 $entities['stop'] = array(
@@ -87,7 +88,7 @@ $entities['stop'] = array(
         'label' => t('Stop Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
   $entities['stop_time'] = array(
@@ -104,7 +105,7 @@ $entities['stop'] = array(
         'label' => t('Stop Time Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
   $entities['trip'] = array(
@@ -121,7 +122,7 @@ $entities['stop'] = array(
         'label' => t('Trip Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
   $entities['calendar'] = array(
@@ -138,7 +139,7 @@ $entities['stop'] = array(
         'label' => t('Calendar Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
   $entities['calendar_date'] = array(
@@ -165,7 +166,7 @@ $entities['stop'] = array(
         'label' => t('Transportation Type Details'),
 	'custom settings' => FALSE,
       ),
-    ),	      
+    ),
   );
 
   $entities['transfer'] = array(
@@ -313,7 +314,7 @@ $entities['stop'] = array(
  */
 function gtfs_manager_menu() {
   $items = array();
-   
+
   // Add agency link
   $items['agency/add'] = array(
     'title' => 'Add a new transporter',
@@ -325,8 +326,8 @@ function gtfs_manager_menu() {
     'menu_name' => 'gtfs_manager',
     'access arguments' => array('administer gtfs'),
     'file' => 'agency.pages.inc',
-  );  
-  
+  );
+
   // show an agency
   $items['agency/%agency'] = array(
     'title callback' => 'agency_page_title',
@@ -385,7 +386,7 @@ function gtfs_manager_menu() {
     'title callback' => t('New Route'),
     'title arguments' => array(1),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('gtfs_manager_route_form', 
+    'page arguments' => array('gtfs_manager_route_form',
       entity_get_controller('route')->create(), 1),
     'weight' => 1,
     'menu_name' => 'gtfs_manager',
@@ -397,7 +398,7 @@ function gtfs_manager_menu() {
   $items['agency/%agency/feature/add'] = array(
     'title callback' => t('Add features to this route'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('gtfs_manager_agency_feature_form', 
+    'page arguments' => array('gtfs_manager_agency_feature_form',
       entity_get_controller('agency_service_feature')->create(), 1),
     'weight' => 1,
     'menu_name' => 'gtfs_manager',
@@ -444,7 +445,7 @@ function gtfs_manager_menu() {
     'title callback' => t('New Stop'),
     'title arguments' => array(1),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('gtfs_manager_stop_form', 
+    'page arguments' => array('gtfs_manager_stop_form',
       entity_get_controller('stop')->create(), 1),
     'weight' => 1,
     'menu_name' => 'gtfs_manager',
@@ -471,6 +472,19 @@ function gtfs_manager_menu() {
     'menu_name' => 'gtfs_manager',
     'file' => 'stop.pages.inc',
   );
+
+  //Add a feature for a given route
+  $items['route/%route/feature/add'] = array(
+    'title callback' => t('Add features to this route'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_route_feature_form',
+      entity_get_controller('route_service_feature')->create(), 1),
+    'weight' => 1,
+    'menu_name' => 'gtfs_manager',
+    'access arguments' => array('administer gtfs'),
+    'file' => 'route.pages.inc',
+  );
+
 
   ////////////STOP/////////////////
 
@@ -502,7 +516,7 @@ function gtfs_manager_menu() {
   $items['route/%/stop/%/calendar_date/add'] = array(
     'title' => 'Add Exception',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('gtfs_manager_stop_calendar_date_form', 3, 
+    'page arguments' => array('gtfs_manager_stop_calendar_date_form', 3,
                       entity_get_controller('calendar_date')->create(), 1),
     'access arguments' => array('administer gtfs'),
     'weight' => 1,
@@ -510,6 +524,19 @@ function gtfs_manager_menu() {
     'context' => MENU_CONTEXT_INLINE,
     'file' => 'stop.pages.inc',
    );
+
+  $items['route/%route/stop/%stop/feature/add'] = array(
+    'title' => 'Add Exception',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('gtfs_manager_stop_service_feature_form',
+                      entity_get_controller('stop_service_feature')->create(), 1, 3),
+    'access arguments' => array('administer gtfs'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'file' => 'stop.pages.inc',
+   );
+
 
   $items['stopname/autocomplete'] = array(
     'page callback' => 'gtfs_manager_stop_name_autocomplete',
@@ -698,7 +725,7 @@ function gtfs_manager_menu() {
     'file' => 'fare.pages.inc',
   );
 
-  // Add fare
+  // create a new service feature
   $items['service_feature/new'] = array(
     'title' => 'Create a service feature',
     'title callback' => 'check_plain',
@@ -757,11 +784,17 @@ function gtfs_manager_theme() {
     'route_fare_form' => array(
       'render element' => 'form',
     ),
+    'transfer_report' => array(
+      'template' => 'gtfs-manager-transfer-report'
+    ),
   );
 
   return $themes;
 }
 
+/*
+ * Generates a fare grid for all origin destinations in a given route
+ */
 function theme_route_fare_form($variables) {
   $form = $variables['form'];
 
@@ -797,7 +830,7 @@ function theme_route_fare_form($variables) {
       }
 
       $output .= '<td>' . drupal_render($form[$index]) . '</td>';
-      
+
     }
   }
 
@@ -821,12 +854,12 @@ function fetch_stop_names($rid) {
 
   $result = $query->condition('t.rid', $rid, '=')
     ->execute();
-	    
+
   $stop_names = array();
   while ($stop_name = $result->fetchField()){
     $stop_names[] = $stop_name;
   }
-  
+
   return $stop_names;
 
 }
@@ -837,7 +870,6 @@ function fetch_stop_names($rid) {
  * Prepares trips detail data for template gtfs-manager-search-results.tpl.php
  * @param &$variables a reference to varables provided by theme_hook()
  */
-
 function template_preprocess_display_search_results(&$variables) {
   if (!empty($variables['results'])) {
     //pull the header info from first result
@@ -852,86 +884,102 @@ function template_preprocess_display_search_results(&$variables) {
       $result->duration = $interval->format('%hh %im');
 
       if ($result->search_type == 'one_transfer') {
+	    $layover_arrival = new DateTime($result->departure_transfer_departure_time);
+	    $layover_departure = new DateTime($result->destination_transfer_arrival_time);
+	    $layover_interval = $layover_arrival->diff($layover_departure);
+	    $result->layover_duration = $layover_interval->format('%hh %im');
 
-	$layover_arrival 
-	  = new DateTime($result->departure_transfer_departure_time);
-	$layover_departure 
-	  = new DateTime($result->destination_transfer_arrival_time);
-	$layover_interval = $layover_arrival->diff($layover_departure);
-	$result->layover_duration 
-	  = $layover_interval->format('%hh %im');
+	    $first_leg = '';
+	    $second_leg = '';
 
-	$result->transfer = t('1 Transfer in @t. <em>Layover: @l</em>', 
-          array('@t' => $result->destination_transfer_location,
-		'@l' => $result->layover_duration));
+	    //if either or both of the prices are not set
+	    if (empty($result->first_leg_price) || empty($result->second_leg_price)) {
 
-	$result->transportation_type = t('@t1 to @t2', 
-	  array('@t1' => $result->departure_transportation_type,
-		'@t2' => $result->destination_transportation_type,));
+	      $first_leg = empty($result->first_leg_price)
+	        ? l(t('$ to ') . $result->from_stop_name, $result->departure_agency_fare_url, array('external' => TRUE))
+	        : money_format('$%i', (float)$result->first_leg_price);
 
-	$result->provider 
-	  = l($result->departure_agency_name, $result->departure_agency_url)
-	  . ' to '
-	  . l($result->destination_agency_name, $result->destination_agency_url);
+	      $second_leg = ($result->second_leg_price == null)
+	        ? l(t('$ to ') . $result->destination_city, $result->destination_agency_fare_url, array('external' => TRUE))
+	        : money_format('$%i', (float)$result->second_leg_price);
 
-	$result->more_info = '<table><tr><td>' 
-	  . $result->departure_agency_name
-	  . '</td>'
-	  . '<td><b>Departs from:'
-	  . $result->departure_description
+
+	      $result->price = $first_leg . '<br />' . $second_leg;
+
+	    } else {
+	      $result->price = money_format('%i', ((float)$result->second_leg_price + (float)$result->first_leg_price));
+	    }
+
+        $result->features = features_for($result);
+
+	    $result->transfer = t('1 Transfer in @t. <em>Layover: @l</em>', array('@t' => $result->to_stop_name, '@l' => $result->layover_duration));
+	    $result->transportation_type = t('@t1 to @t2', array('@t1' => $result->departure_transportation_type, '@t2' => $result->destination_transportation_type,));
+	    $result->provider = l($result->departure_agency_name, $result->departure_agency_url) . ' to ' . l($result->destination_agency_name, $result->destination_agency_url);
+
+    	$result->more_info = '<table><tr><td>'
+		  . $result->departure_agency_name
+	      . '</td>'
+	      . '<td><b>Departs from:'
+	      . $result->departure_description
           . '</td>'
-	  . '<td>'
-	  . $result->departure_agency_info
-	  . '</td>'
-	  . '<td>'
-	  . $result->departure_agency_phone
-	  . '</td>'
-	  . '<td>'
-	  . $result->departure_agency_email
-	  . '</td>'
-	  . '</tr>'
-	  . '<tr>'
-	  . '<td>'
-	  . $result->destination_agency_name
-	  . '</td>'
-	  . '<td><b>Arrives at:'
-	  . $result->destination_description
+	      . '<td>'
+	      . $result->departure_agency_info
+      	  . '</td>'
+      	  . '<td>'
+      	  . $result->departure_agency_phone
+      	  . '</td>'
+      	  . '<td>'
+      	  . $result->departure_agency_email
+      	  . '</td>'
+      	  . '</tr>'
+      	  . '<tr>'
+      	  . '<td>'
+      	  . $result->destination_agency_name
+      	  . '</td>'
+      	  . '<td><b>Arrives at:'
+      	  . $result->destination_description
           . '</td>'
-	  . '<td>'
-	  . $result->destination_agency_info
-	  . '</td>'
-	  . '<td>'
-	  . $result->destination_agency_phone
-	  . '</td>'
-	  . '<td>'
-	  . $result->destination_agency_email
-	  . '</td></tr></table>';
-	  
+      	  . '<td>'
+      	  . $result->destination_agency_info
+      	  . '</td>'
+      	  . '<td>'
+      	  . $result->destination_agency_phone
+      	  . '</td>'
+      	  . '<td>'
+      	  . $result->destination_agency_email
+      	  . '</td></tr></table>';
+
       } else {
-	$result->more_info = '<table><tr>'
-	  . '<td>'
-	  . $result->departure_agency_name
-	  . '</td>'
-	  . '<td><b>Departs from: </b>'
-	  . $result->departure_description
-          . '</td>'
-	  . '<td><b>Arrives at: </b>'
-	  . $result->destination_description
-          . '</td>'
-	  . '<td>'
-	  . $result->agency_info
-	  . '</td>'
-	  . '<td>'
-	  . $result->agency_phone
-          . '</td>'
-	  . '<td>'
-	  . $result->agency_email
-	  . '</td>'
-	  . '</tr></table>';
 
-	$result->transfer = 0;
-	$result->provider = l($result->departure_agency_name, 
-			      $result->departure_agency_url); 
+        $result->price = empty($result->price)
+        ? l(t('View $'), $result->agency_fare_url, array('external' => TRUE))
+        : money_format('$%i', (float)$result->price);
+
+        $result->features = features_for($result);
+
+	    $result->more_info = '<table><tr>'
+    	  . '<td>'
+    	  . $result->departure_agency_name
+    	  . '</td>'
+    	  . '<td><b>Departs from: </b>'
+    	  . $result->departure_description
+          . '</td>'
+    	  . '<td><b>Arrives at: </b>'
+    	  . $result->destination_description
+          . '</td>'
+    	  . '<td>'
+    	  . $result->agency_info
+    	  . '</td>'
+    	  . '<td>'
+    	  . $result->agency_phone
+          . '</td>'
+    	  . '<td>'
+    	  . $result->agency_email
+    	  . '</td>'
+    	  . '</tr></table>';
+
+      	$result->transfer = 0;
+    	$result->provider = l($result->departure_agency_name, $result->departure_agency_url);
       }
     }
   }
@@ -941,124 +989,141 @@ function template_preprocess_display_search_results(&$variables) {
     $variables['return_from'] = $variables['return_results'][0]->departure_city;
     $variables['return_to'] = $variables['return_results'][0]->destination_city;
     $variables['return_date'] = date('F d,Y', $variables['return_results'][0]->date);
-    
+
     foreach ($variables['return_results'] as $i => $result) {
       $departure = new DateTime($result->departure_departure_time);
       $arrival = new DateTime($result->destination_arrival_time);
       $interval = $arrival->diff($departure);
       $result->duration = $interval->format('%hh %im');
-      
+
       //loop through initial trip and make sure that the
       //return trips happens at a later time
       if ($variables['date'] == $variables['return_date']) {
-	foreach ($variables['results'] as $to_result) {
-	  if ($result->departure_departure_time < $to_result->destination_arrival_time) {
-	    unset($variables['results'][$i]);
-	  }
-	}
+	    foreach ($variables['results'] as $to_result) {
+	      if ($result->departure_departure_time < $to_result->destination_arrival_time) {
+	        unset($variables['results'][$i]);
+	      }
+	    }
       }
-      
+
       if ($result->search_type == 'one_transfer') {
-	
-	$layover_arrival 
-	  = new DateTime($result->departure_transfer_departure_time);
-	$layover_departure 
-	  = new DateTime($result->destination_transfer_arrival_time);
-	$layover_interval = $layover_arrival->diff($layover_departure);
-	$result->layover_duration 
-	  = $layover_interval->format('%h hr(s) %i min(s)');
 
-	$result->transfer = t('1 Transfer in @t. <em>Layover: @l</em>', 
-          array('@t' => $result->destination_transfer_location,
-		'@l' => $result->layover_duration));
+	    $layover_arrival = new DateTime($result->departure_transfer_departure_time);
+	    $layover_departure = new DateTime($result->destination_transfer_arrival_time);
+	    $layover_interval = $layover_arrival->diff($layover_departure);
+	    $result->layover_duration = $layover_interval->format('%h hr(s) %i min(s)');
 
-	$result->transportation_type = t('@t1 to @t2', 
-	  array('@t1' => $result->departure_transportation_type,
-		'@t2' => $result->destination_transportation_type,));
+	    $first_leg = '';
+	    $second_leg = '';
 
-	$result->more_info = '<table><tr><td>' 
-	  . $result->departure_agency_name
-	  . '</td>'
-	  . '<td><b>Departs from: </b>'
-	  . $result->departure_description
-          . '</td>'
-	  . '<td><b>Departs from: </b>'
-	  . $result->departure_description
-          . '</td>'
-	  . '<td><b>Arrives at: </b>'
-	  . $result->destination_description
-          . '</td>'
-	  . '<td><b>Arrives at: </b>'
-	  . $result->destination_description
-          . '</td>'
-	  . '<td>'
-	  . $result->departure_agency_info
-	  . '</td>'
-	  . '<td>'
-	  . $result->departure_agency_phone
-	  . '</td>'
-	  . '<td>'
-	  . $result->departure_agency_email
-	  . '</td>'
-	  . '</tr>'
-	  . '<tr>'
-	  . '<td>'
-	  . $result->destination_agency_name
-	  . '</td>'
-	  . '<td><b>Departs from: </b>'
-	  . $result->departure_description
-          . '</td>'
-	  . '<td><b>Arrives at: </b>'
-	  . $result->destination_description
-          . '</td>'
-	  . '<td>'
-	  . $result->destination_agency_info
-	  . '</td>'
-	  . '<td>'
-	  . $result->destination_agency_phone
-	  . '</td>'
-	  . '<td>'
-	  . $result->destination_agency_email
-	  . '</td></tr></table>';
-	
+	    //if either or both of the prices are not set
+	    if (empty($result->first_leg_price) || empty($result->second_leg_price)) {
 
-	$result->provider 
-	  = l($result->departure_agency_name, $result->departure_agency_url)
-	  . ' to '
-	  . l($result->destination_agency_name, $result->destination_agency_url);
-	  
+	      $first_leg = empty($result->first_leg_price)
+	        ? l(t('$ to ') . $result->from_stop_name, $result->departure_agency_fare_url, array('external' => TRUE))
+	        : money_format('$%i', (float)$result->first_leg_price);
+
+	      $second_leg = ($result->second_leg_price == null)
+	        ? l(t('$ to ') . $result->destination_city, $result->destination_agency_fare_url, array('external' => TRUE))
+	        : money_format('$%i', (float)$result->second_leg_price);
+
+
+	      $result->price = $first_leg . '<br />' . $second_leg;
+
+	    } else {
+	      $result->price = money_format('%i', ((float)$result->second_leg_price + (float)$result->first_leg_price));
+	    }
+
+        $result->features = features_for($result);
+
+
+	    $result->transfer = t('1 Transfer in @t. <em>Layover: @l</em>', array('@t' => $result->destination_city, '@l' => $result->layover_duration));
+
+	    $result->transportation_type = t('@t1 to @t2', array('@t1' => $result->departure_transportation_type, '@t2' => $result->destination_transportation_type,));
+
+	    $result->more_info = '<table><tr><td>'
+	      . $result->departure_agency_name
+	      . '</td>'
+	      . '<td><b>Departs from: </b>'
+	      . $result->departure_description
+          . '</td>'
+	      . '<td><b>Departs from: </b>'
+	      . $result->departure_description
+          . '</td>'
+	      . '<td><b>Arrives at: </b>'
+	      . $result->destination_description
+          . '</td>'
+	      . '<td><b>Arrives at: </b>'
+	      . $result->destination_description
+          . '</td>'
+	      . '<td>'
+	      . $result->departure_agency_info
+	      . '</td>'
+	      . '<td>'
+	      . $result->departure_agency_phone
+	      . '</td>'
+    	  . '<td>'
+    	  . $result->departure_agency_email
+    	  . '</td>'
+    	  . '</tr>'
+    	  . '<tr>'
+    	  . '<td>'
+    	  . $result->destination_agency_name
+    	  . '</td>'
+    	  . '<td><b>Departs from: </b>'
+    	  . $result->departure_description
+          . '</td>'
+	      . '<td><b>Arrives at: </b>'
+	      . $result->destination_description
+          . '</td>'
+	      . '<td>'
+	      . $result->destination_agency_info
+	      . '</td>'
+	      . '<td>'
+	      . $result->destination_agency_phone
+	      . '</td>'
+	      . '<td>'
+	      . $result->destination_agency_email
+	      . '</td></tr></table>';
+
+
+	    $result->provider = l($result->departure_agency_name, $result->departure_agency_url) . ' to ' . l($result->destination_agency_name, $result->destination_agency_url);
+
       } else {
 
-	$result->more_info = '<table><tr>'
-	  . '<td>'
-	  . $result->departure_agency_name
-	  . '</td>'
-	  . '<td><b>Departs from: </b>'
-	  . $result->departure_description
+        $result->price = empty($result->price)
+        ? l(t('View fares'), $result->agency_fare_url, array('external' => TRUE))
+        : money_format('$%i', (float)$result->price);
+
+        $result->features = features_for($result);
+
+    	$result->more_info = '<table><tr>'
+    	  . '<td>'
+    	  . $result->departure_agency_name
+    	  . '</td>'
+    	  . '<td><b>Departs from: </b>'
+    	  . $result->departure_description
           . '</td>'
-	  . '<td><b>Arrives at: </b>'
-	  . $result->destination_description
+    	  . '<td><b>Arrives at: </b>'
+    	  . $result->destination_description
           . '</td>'
-	  . '<td>'
-	  . $result->agency_info
-	  . '</td>'
-	  . '<td>'
-	  . $result->agency_phone
+    	  . '<td>'
+    	  . $result->agency_info
+    	  . '</td>'
+    	  . '<td>'
+    	  . $result->agency_phone
           . '</td>'
-	  . '<td>'
-	  . $result->agency_email
-	  . '</td>'
-	  . '</tr></table>';
+    	  . '<td>'
+    	  . $result->agency_email
+    	  . '</td>'
+    	  . '</tr></table>';
 
 
-	$result->transfer = 0;
-	$result->provider = l($result->departure_agency_name, 
-			      $result->departure_agency_url); 
+    	$result->transfer = 0;
+	    $result->provider = l($result->departure_agency_name, $result->departure_agency_url);
       }
     }
   }
-
-  //need to sort the results there by duration?
 }
 
 
@@ -1068,13 +1133,12 @@ function template_preprocess_display_search_results(&$variables) {
  * Prepares trips detail data for template gtfs-manager-trip-detail.tpl.php
  * @param &$variables a reference to varables provided by theme_hook()
  */
-
 function template_preprocess_gtfs_manager_agency_detail(&$variables) {
   $variables['classes'] = array('gtfs-manager-agency-detail');
-  $variables['creation_date'] = format_date($variables['agency']->created_at, 
+  $variables['creation_date'] = format_date($variables['agency']->created_at,
 				     GTFS_MANAGER_DATE_FORMAT);
 
-  $variables['links'] = $variables['view_routes_link'] = l('View Routes', 
+  $variables['links'] = $variables['view_routes_link'] = l('View Routes',
     'agency/' . $variables['agency']->aid . '/routes/view');
 
   if (user_access('administer gtfs')) {
@@ -1093,14 +1157,13 @@ function template_preprocess_gtfs_manager_agency_detail(&$variables) {
  * Prepares trips detail data for template gtfs-manager-trip-detail.tpl.php
  * @param &$variables a reference to varables provided by theme_hook()
  */
-
 function template_preprocess_gtfs_manager_route_detail(&$variables) {
   $variables['classes'] = array('gtfs-manager-route-detail');
-  $variables['creation_date'] = format_date($variables['route']->created_at, 
+  $variables['creation_date'] = format_date($variables['route']->created_at,
 				     GTFS_MANAGER_DATE_FORMAT);
   $variables['transportation_type'] = 'FIXME';
 
-  $variables['links'] = l('View Stops', 
+  $variables['links'] = l('View Stops',
     'route/' . $variables['route']->rid . '/stops/view');
 
 
@@ -1108,14 +1171,17 @@ function template_preprocess_gtfs_manager_route_detail(&$variables) {
     $variables['links'] .= ' | '
       . l('Edit', 'route/' . $variables['route']->rid . '/edit');
 
-    $variables['links'] .= ' | ' 
+    $variables['links'] .= ' | '
       . l('Add stop', 'route/' . $variables['route']->rid . '/stop/add');
 
-    $variables['links'] .= ' | ' 
+    $variables['links'] .= ' | '
       . l('Upload Stops', 'route/' . $variables['route']->rid . '/upload');
 
-    $variables['links'] .= ' | ' 
+    $variables['links'] .= ' | '
       . l('Fares', 'route/' . $variables['route']->rid . '/fares/add');
+
+    $variables['links'] .= ' | '
+      . l('Features', 'route/' . $variables['route']->rid . '/feature/add');
   }
 }
 
@@ -1125,23 +1191,29 @@ function template_preprocess_gtfs_manager_route_detail(&$variables) {
  * Prepares trips detail data for template gtfs-manager-route_stops-view.tpl.php
  * @param &$variables a reference to varables provided by theme_hook()
  */
-
 function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
   foreach ($variables['stops'] as $stop) {
     $stop->links = '';
-    
+
     if (user_access('administer gtfs')) {
       $stop->links .= l('Edit', 'stop/' . $stop->sid . '/edit');
-      $stop->links .= ' | ' .  l('Exception', 'route/' 
-                      . $stop->rid 
-                      . '/stop/' 
-                      . $stop->service_id 
+      $stop->links .= ' | ' .  l('Exception', 'route/'
+                      . $stop->rid
+                      . '/stop/'
+                      . $stop->service_id
                       . '/calendar_date/add'
+      );
+
+      $stop->links .= ' | ' .  l('Add feature', 'route/'
+                      . $stop->rid
+                      . '/stop/'
+                      . $stop->sid
+                      . '/feature/add'
       );
     }
 
-    $stop->map_link = l('View stop on a map', 
-      'https://maps.google.com/?q=' 
+    $stop->map_link = l('View stop on a map',
+      'https://maps.google.com/?q='
       . $stop->stop_lat
       . ','
       . $stop->stop_long,
@@ -1156,7 +1228,7 @@ function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
       ->fetchAssoc();
 
     $days_string = '<em>Days: </em>';
-      
+
     foreach ($calendar as $day => $is_scheduled) {
       if ($is_scheduled) {
 	if ($day == 'thursday') {
@@ -1172,7 +1244,7 @@ function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
 	$days_string .= $day;
       }
     }
-    $days_string .= ' <em>From: </em> ' 
+    $days_string .= ' <em>From: </em> '
 	.  format_date($stop->start_date, GTFS_MANAGER_DATE_FORMAT)
 	. ' <em>to</em> '
 	.  format_date($stop->end_date, GTFS_MANAGER_DATE_FORMAT);
@@ -1183,12 +1255,12 @@ function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
   $variables['links'] = '';
 
   if (user_access('administer gtfs')) {
-    $variables['links'] .= 
+    $variables['links'] .=
       l('Add another stop', 'route/' . $variables['route']->rid . '/stop/add');
-    $variables['links'] .= 
-      ' | ' 
-      . l('Add exception for all stops','route/' 
-	. $variables['route']->rid 
+    $variables['links'] .=
+      ' | '
+      . l('Add exception for all stops','route/'
+	. $variables['route']->rid
 	. '/calendar_date/add'
       );
   }
@@ -1199,9 +1271,8 @@ function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
  *
  * Prepares zombie report data for template gtfs-manager-zombie-report.tpl.php
  */
-
 function template_preprocess_gtfs_manager_zombie_report(&$variables) {
-  
+
   foreach ($variables['zombies'] as $zombie) {
     $zombie->remove_link = l('Remove', 'stop/' . $zombie->sid . '/delete/');
   }
@@ -1209,16 +1280,18 @@ function template_preprocess_gtfs_manager_zombie_report(&$variables) {
 }
 
 
-
+/*
+ * prepares trip information for trip detail template
+ */
 function template_preprocess_gtfs_manager_trip_detail(&$variables) {
   $stop = $variables['stop'];
 
-  $days = array('monday', 
-		'tuesday', 
-		'wednesday', 
-		'thursday', 
-		'friday', 
-		'saturday', 
+  $days = array('monday',
+		'tuesday',
+		'wednesday',
+		'thursday',
+		'friday',
+		'saturday',
 		'sunday'
 		);
 
@@ -1233,13 +1306,13 @@ function template_preprocess_gtfs_manager_trip_detail(&$variables) {
     }
   }
 
-  $variables['edit_link'] = l('Edit Stop', 
-			      'admin/config/gtfs_manager/trip/edit/' 
+  $variables['edit_link'] = l(t('Edit Stop'),
+			      'admin/config/gtfs_manager/trip/edit/'
 			      . $stop['tid']
 			      );
 
-  $variables['delete_link'] = l('Remove Stop', 
-			      'admin/config/gtfs_manager/trip/delete/' 
+  $variables['delete_link'] = l(t('Remove Stop'),
+			      'admin/config/gtfs_manager/trip/delete/'
 			      . $stop['tid']
 			      );
 
@@ -1248,6 +1321,15 @@ function template_preprocess_gtfs_manager_trip_detail(&$variables) {
   $variables['classes'] = 'gtfs-manager-stop-detail';
 }
 
+function template_preprocess_transfer_report(&$variables) {
+  foreach ($variables['transfers'] as $transfer) {
+    $transfer->ignore_link = ($transfer->ignore == 1)
+      ? l(t('Avtivate'), '#')
+      : l(t('Ignore'), '#');
+
+    $transfer->remove_link = l('Remove', '#');
+  }
+}
 //Agency Functions
 
 /**
@@ -1298,7 +1380,7 @@ function agency_load($aid = null, $reset = FALSE) {
  */
 function agency_delete($aid) {
   $rids = agency_route_ids($aid);
-  
+
   if (!empty($rids)) {
     foreach ($rids as $rid) {
       route_delete($rid);
@@ -1377,7 +1459,6 @@ function route_load_multiple($rids = array(), $conditions = array(), $reset = FA
  *
  * @return a fully populated route object
  */
-
 function route_load($rid = null, $reset = FALSE) {
   $rids = (isset($rid) ? array($rid) : array());
   $conditions = array();
@@ -1395,7 +1476,7 @@ function route_load($rid = null, $reset = FALSE) {
 function route_delete($rid) {
   //get associated stops
   $sids = route_stops_ids($rid);
-  
+
   if (!empty($sids)) {
     foreach ($sids as $sid) {
       $stop = stop_load($sid);
@@ -1410,9 +1491,9 @@ function route_delete($rid) {
  * fetches all stops assiciated with a route
  */
 function route_stops_ids($rid) {
-  
+
   $query = db_select('stops', 's');
-    
+
   $query->join('stop_times', 'st', 'st.sid = s.sid');
   $query->join('trips', 't', 't.tid = st.tid');
   $sids = $query->fields('s', array('sid'))
@@ -1452,43 +1533,41 @@ function route_save($route) {
   return entity_get_controller('route')->save($route);
 }
 
-
-
 /**
  * @param $aid the agency id
  * @return the list of routes associated with this agency formatted for a select
  */
 function gtfs_manager_agency_routes_view($aid) {
-  $result = 
+  $result =
     db_query('select * from {routes} where aid = :aid', array(':aid' => $aid));
 
   $routes['title'] = t('Showing all routes for -AgnecyNamePlaceholder');
   $routes['items'] = array();
-  
+
 
   if ($result) {
     while ($route = $result->fetchAssoc()) {
-      $link = l($route['route_long_name'], 
-		'admin/config/gtfs_manager/route/stops/' 
+      $link = l($route['route_long_name'],
+		'admin/config/gtfs_manager/route/stops/'
 		. $route['rid']
 		);
 
       $link .= ' | ';
 
-      $link .= l('Edit', 
-		'admin/config/gtfs_manager/routes/edit/' 
+      $link .= l('Edit',
+		'admin/config/gtfs_manager/routes/edit/'
 		. $route['rid']
 		);
 
       $link .= ' | ';
 
-      $link .= l('Remove', 
-		'admin/config/gtfs_manager/routes/delete/' 
+      $link .= l('Remove',
+		'admin/config/gtfs_manager/routes/delete/'
 		. $route['rid']
 		);
 
       array_push($routes['items'], $link);
-		
+
     }
   }
   return theme('item_list', $routes);
@@ -1515,7 +1594,7 @@ function gtfs_manager_show_stop_detail($tid) {
   if ($result) {
     $stop = $result->fetchAssoc();
   }
-  
+
   $variables['stop'] = $stop;
 
   return theme('gtfs_manager_trip_detail', $variables);
@@ -1532,7 +1611,7 @@ function fetch_transportation_types() {
 
   if ($transportation_types) {
     foreach ($transportation_types as $transportation_type) {
-      $options[$transportation_type->transportation_type_id] = 
+      $options[$transportation_type->transportation_type_id] =
 		      t($transportation_type->transportation_type_name);
 
     }
@@ -1556,15 +1635,15 @@ function gtfs_manager_fetch_services($service_id = null) {
   if ($calendars) {
     foreach ($calendars as $calendar) {
       //format calendar for select field
-      
+
       //collect start and end date and remove them from array
-      $start_end_dates_string = 
-	format_date($calendar->start_date, GTFS_MANAGER_DATE_FORMAT) 
-	. ' to ' 
+      $start_end_dates_string =
+	format_date($calendar->start_date, GTFS_MANAGER_DATE_FORMAT)
+	. ' to '
 	. format_date($calendar->end_date, GTFS_MANAGER_DATE_FORMAT);
       unset($calendar->start_date);
       unset($calendar->end_date);
-      
+
       //grab the service_id
       $service_id = $calendar->service_id;
       unset($calendar->service_id);
@@ -1574,16 +1653,16 @@ function gtfs_manager_fetch_services($service_id = null) {
       unset($calendar->updated_by);
 
       $days_string = '';
-      
+
       foreach ($calendar as $day => $is_scheduled) {
 	if ($is_scheduled){
 	  $day = ($day == 'thursday') ? 'R' : ucfirst($day[0]);
 	  $days_string .= $day;
 	}
       }
-      
-      $option[$service_id] = $start_end_dates_string 
-	. ' | ' 
+
+      $option[$service_id] = $start_end_dates_string
+	. ' | '
 	. $days_string;
       array_push($options, $option);
     }
@@ -1607,7 +1686,7 @@ function gtfs_manager_fetch_services($service_id = null) {
  *
  * @return an array of calendar objects indexed by service_id.
  */
-function calendar_load_multiple($service_ids = array(), $conditions = array(), 
+function calendar_load_multiple($service_ids = array(), $conditions = array(),
 				$reset = FALSE) {
   return entity_load('calendar', $service_ids, $conditions, $reset);
 }
@@ -1654,7 +1733,7 @@ function calendar_delete_multiple($service_ids) {
  * @return the formatted page title
  */
 function calendar_page_title($calendar) {
-  return t('Showing Calendar operating @from to @to', 
+  return t('Showing Calendar operating @from to @to',
 	   array('@from' => $calendar->start_date, '@to' => $calendar->end_date)
   );
 }
@@ -1684,7 +1763,7 @@ function calendar_save($calendar) {
  *
  * @return an array of calendar date objects indexed by service_id.
  */
-function calendar_date_load_multiple($service_ids = array(), $conditions = array(), 
+function calendar_date_load_multiple($service_ids = array(), $conditions = array(),
 				$reset = FALSE) {
   return entity_load('calendar', $service_ids, $conditions, $reset);
 }
@@ -1771,7 +1850,7 @@ function stop_time_load($tid = null, $reset = FALSE) {
  * Deletes an stop time given the sid and tid
  *
  * @param $sid the stop id
- * @param $tid the trip id 
+ * @param $tid the trip id
  *
  * @return TRUE on successful delete, FALSE otherwise
  */
@@ -1977,7 +2056,7 @@ function stop_save($stop) {
  * @return an array of transportation_type objects indexed by transportation_type_id.
  */
 function transportation_type_load_multiple($transportation_type_ids = array(), $conditions = array(), $reset = FALSE) {
-  return entity_load('transportation_type', $transportation_type_ids, 
+  return entity_load('transportation_type', $transportation_type_ids,
     $conditions, $reset);
 }
 
@@ -2118,11 +2197,12 @@ function gtfs_manager_block_view($delta = ''){
 }
 
 /**
- * Form builder for the search form
+ * Form builder for the main search form
+ *
+ * The return date is will only show if you choose round trip
  */
-
 function gtfs_manager_search_form($form, &$form_state){
-  
+
   $form['#id'] = 'search-form';
 
   //Text field for origin
@@ -2141,7 +2221,7 @@ function gtfs_manager_search_form($form, &$form_state){
     '#size' => 27,
     '#autocomplete_path' => 'stopname/autocomplete',
     '#required' => TRUE,
-  ); 
+  );
 
   //Date picker for travel date -- needs default date
   $form['gtfs_manager_search_date'] = array(
@@ -2152,6 +2232,7 @@ function gtfs_manager_search_form($form, &$form_state){
     '#date_label_position' => 'invisible',
     '#attributes' => array(
       'class' => array('search-date'),
+      'readonly' => 'readonly',
     ),
     '#title' => t('Departure date'),
     '#required' => TRUE,
@@ -2198,10 +2279,10 @@ function gtfs_manager_search_form($form, &$form_state){
   // Attach the CSS and JS to the form
   $form['#attached'] = array('css' => array(
 					    'type' => 'file',
-					    'data' => $path 
+					    'data' => $path
 					    . '/search_form_theme.css',
 					    ),
-			
+
 			     );
 
   //stash results
@@ -2209,32 +2290,56 @@ function gtfs_manager_search_form($form, &$form_state){
     $form['results_table'] = array('#markup' => $form_state['results_table'],
 				   '#weight' => -10,);
   }
-  
+
   return $form;
 }
 
+/*
+ * Validates user search information
+ */
+
 function gtfs_manager_search_form_validate($form, &$form_state) {
-  $travel_date = new DateTime($form_state['values']['gtfs_manager_search_date']);
+
+  if (empty($form_state['values']['gtfs_manager_search_origin'])) {
+    form_set_error('gtfs_manager_search_date', t('Please choose an origin.'));
+  }
+
+  if (empty($form_state['values']['gtfs_manager_search_destination'])) {
+    form_set_error('gtfs_manager_search_date', t('Please choose a destination.'));
+  }
+
+  $travel_date = '';
+
+  if (empty($form_state['values']['gtfs_manager_search_date'][0])) {
+    form_set_error('gtfs_manager_search_date', t('Please choose a search date.'));
+  } else {
+    watchdog('search date', serialize($form_state['values']['gtfs_manager_search_date'][0]));
+    $travel_date = new DateTime($form_state['values']['gtfs_manager_search_date']);
+  }
+
   $today = new DateTime("today");
-  
+
   //make sure date selected is earlier than yesterday
   if ($travel_date < $today) {
-    form_set_error(
-      'gtfs_manager_search_date', 
-      t('Please choose a travel date in the future.')
+    form_set_error('gtfs_manager_search_date', t('Please choose a travel date in the future.')
     );
-  } 
+  }
 
   // make sure return date is later than travel date
   if (!empty($form_state['values']['gtfs_manager_return_date'])) {
       $return_date = new DateTime($form_state['values']['gtfs_manager_return_date']);
       if ($return_date < $travel_date) {
 	form_set_error('gtfs_manager_return_date', t('Please choose a return date that is after the date that you leave.'));
-      }  
+      }
   }
 
 }
 
+/*
+ * Processes user search information
+ *
+ * Calls several different search functions and adds all results to a collection of results
+ */
 function gtfs_manager_search_form_submit($form, &$form_state) {
 
   $num_results = 0;
@@ -2243,18 +2348,27 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
 
   //split up the stop name and the province code
   $origin_strings = explode(' ', $form_state['values']['gtfs_manager_search_origin']);
+  //the province cod will always be the last element thus count() -1
+  $origin_province_code = preg_replace('/[()]/','', array_pop($origin_strings));
+  $origin_stop_name = implode(' ', $origin_strings);
+
+  //Need to enforce stop naming conventions to use regexes here ie 'Wolfville (Acadia)'
+  //preg_match('/(?P<stop_name>\w+) \((?P<province_code>\w+)\)/', $form_state['values']['gtfs_manager_search_origin'], $matches);
 
   $destination_strings = explode(' ', $form_state['values']['gtfs_manager_search_destination']);
+  $destination_province_code = preg_replace('/[()]/','', array_pop($destination_strings));
+  $destination_stop_name = implode(' ', $destination_strings);
+
 
   $args = array(
-    ':o' => $origin_strings[0],
-    ':opc' => preg_replace('/[()]/','', $origin_strings[1]),
-    ':d' => $destination_strings[0],
-    ':dpc' => preg_replace('/[()]/','', $destination_strings[1]),
+    ':o' => $origin_stop_name,
+    ':opc' => $origin_province_code,
+    ':d' => $destination_stop_name,
+    ':dpc' => $destination_province_code,
     ':epoc' => strtotime($form_state['values']['gtfs_manager_search_date']),
     ':date' => $date_strings[0] . '-' . $date_strings[1] . '-' . $date_strings[2],
   );
-  
+
   $results = array();
 
   //run the different searches
@@ -2265,23 +2379,19 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
   //run the same searches for the return trip
   if ($form_state['values']['gtfs_manager_trip_type_radio'] == 0
       && !empty($form_state['values']['gtfs_manager_return_date'])) {
-    
+
     $return_results = array();
 
-    $return_date_strings = 
+    $return_date_strings =
       explode('-', $form_state['values']['gtfs_manager_return_date']);
 
     $return_args = array(
-      ':o'   => $destination_strings[0],
-      ':opc' => preg_replace('/[()]/','', $destination_strings[1]),
-      ':d'   => $origin_strings[0],
-      ':dpc' => preg_replace('/[()]/','', $origin_strings[1]),
+      ':o'   => $destination_stop_name,
+      ':opc' => $destination_province_code,
+      ':d'   => $origin_stop_name,
+      ':dpc' => $origin_province_code,
       ':epoc' => strtotime($form_state['values']['gtfs_manager_return_date']),
-      ':date' => $return_date_strings[0] 
-      . '-' 
-      . $return_date_strings[1] 
-      . '-' 
-      . $return_date_strings[2],
+      ':date' => $return_date_strings[0] . '-' . $return_date_strings[1] . '-' . $return_date_strings[2],
     );
 
     fetch_point_to_point_results($form, $form_state, $return_results, $return_args);
@@ -2295,7 +2405,7 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
   $variables['results'] = $results;
 
    //capture user search information
-  $return_num_results = count($variables['results']);  
+  $return_num_results = count($variables['results']);
 
   capture_search_data($form_state, $num_results, $return_num_results);
 
@@ -2303,7 +2413,6 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
     $form_state['results_table'] = theme('display_search_results', $variables);
     $form_state['rebuild'] = TRUE;
   } else {
-    
     drupal_set_message('This search returns no results');
   }
 }
@@ -2313,16 +2422,26 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
 function fetch_point_to_point_results($form, &$form_state, &$results, $args){
 
 $query =<<<SQL
-  select *
+  select destination.*
+  ,  departure.*
+  ,  fa.price
+  ,  group_concat(distinct concat(sf.service_feature_name, '-', sf.service_feature_icon_url) separator ',') as route_service_features
+  ,  group_concat(distinct concat(sf2.service_feature_name, '-', sf2.service_feature_icon_url) separator ',') as agency_service_features
+  ,  group_concat(distinct concat(sf3.service_feature_name, '-', sf3.service_feature_icon_url) separator ',') as from_stop_service_features
+  ,  group_concat(distinct concat(sf3.service_feature_name, '-', sf4.service_feature_icon_url) separator ',') as to_stop_service_features
 from
     (
 select s.stop_name as destination_city
+,  s.zone_id as destination_zone_id
+,  s.sid as destination_sid
 ,  s.stop_desc as destination_description
 ,  st.arrival_time as destination_arrival_time
 ,  st.departure_time as destination_departure_time
 ,  st.stop_sequence as destination_stop_sequence
+,  a.aid as destination_aid
 ,  a.agency_name as destination_agency_name
 ,  a.agency_url as destination_agency_url
+,  a.agency_fare_url
 ,  a.agency_info
 ,  a.agency_phone
 ,  a.agency_email
@@ -2352,6 +2471,8 @@ and dayname(:date) in (if(c.monday = 1, 'monday', ''), if(c.tuesday = 1, 'tuesda
 join
     (
 select s.stop_name as departure_city
+,  s.zone_id as departure_zone_id
+,  s.sid as departure_sid
 ,  s.stop_desc as departure_description
 ,  st.departure_time as departure_departure_time
 ,  st.arrival_time as departure_arrival_time
@@ -2385,16 +2506,37 @@ and :epoc between c.start_date and c.end_date
 and dayname(:date) in (if(c.monday = 1, 'monday', ''), if(c.tuesday = 1, 'tuesday', ''), if(c.wednesday = 1, 'wednesday', ''), if(c.thursday = 1, 'thursday', ''), if(c.friday = 1, 'friday', ''), if(c.saturday = 1, 'saturday', ''), if(c.sunday = 1, 'sunday', ''))
 ) as departure
 on departure.rid = destination.rid
+left join fare_rules fr
+on fr.origin_id = departure.departure_zone_id
+and fr.destination_id = destination.destination_zone_id
+left join fare_attributes fa
+on fa.fare_id = fr.fare_id
+left join route_service_features rsf
+  on rsf.rid = destination.rid
+left join service_features sf
+  on sf.service_feature_id = rsf.service_feature_id
+left join agency_service_features asf
+  on asf.aid = destination.destination_aid
+left join service_features sf2
+  on sf2.service_feature_id = asf.service_feature_id
+left join stop_service_features ssf
+  on ssf.sid = departure.departure_sid
+left join service_features sf3
+  on sf3.service_feature_id = ssf.service_feature_id
+left join stop_service_features ssf2
+  on ssf2.sid = destination.destination_sid
+left join service_features sf4
+  on sf4.service_feature_id = ssf2.service_feature_id
+group by destination.destination_aid, destination.rid, destination.destination_sid, departure.departure_sid
 having destination.destination_stop_sequence > departure.departure_stop_sequence
   order by time(departure_departure_time) asc, time(destination_arrival_time) asc
 SQL;
 
-
-  $result = db_query($query, $args); 
+  $result = db_query($query, $args);
 
   while ($match = $result->fetchObject()) {
     $match->search_type = 'point_to_point';
-    array_push($results, $match);
+    $results[] = $match;
   }
 
   return $results;
@@ -2402,20 +2544,38 @@ SQL;
 
 function fetch_one_transfer_results($form, &$form_state, &$results, $args) {
 
+  watchdog('args', serialize($args));
+
   $query =<<<SQL
-select * 
+select origin.*
+  ,  destination.*
+  ,  transfer_points.*
+  ,  fa.price as first_leg_price
+  ,  fa2.price as second_leg_price
+  ,  if(fa.price is not null or fa2.price is not null, fa.price + fa2.price, fa.price) as price
+  ,  group_concat(distinct concat(sf.service_feature_name, '-', sf.service_feature_icon_url) separator ',') as origin_route_service_features
+  ,  group_concat(distinct concat(sf2.service_feature_name, '-', sf2.service_feature_icon_url) separator ',') as origin_agency_service_features
+  ,  group_concat(distinct concat(sf3.service_feature_name, '-', sf3.service_feature_icon_url) separator ',') as origin_from_stop_service_features
+  ,  group_concat(distinct concat(sf4.service_feature_name, '-', sf4.service_feature_icon_url) separator ',') as origin_transfer_stop_service_features
+  ,  group_concat(distinct concat(sf5.service_feature_name, '-', sf5.service_feature_icon_url) separator ',') as destination_route_service_features
+  ,  group_concat(distinct concat(sf6.service_feature_name, '-', sf6.service_feature_icon_url) separator ',') as destination_agency_service_features
+  ,  group_concat(distinct concat(sf7.service_feature_name, '-', sf7.service_feature_icon_url) separator ',') as destination_to_stop_service_features
+  ,  group_concat(distinct concat(sf8.service_feature_name, '-', sf8.service_feature_icon_url) separator ',') as destination_transfer_stop_service_features
 from
-(select s.sid as departure_sid 
-  , s.stop_name as departure_city
+(select s.sid as departure_sid
+  ,  s.stop_name as departure_city
   ,  s.stop_desc as departure_description
+  ,  s.zone_id as departure_zone_id
   ,  if(s.wheelchair_boarding = 1, 'Wheelchair access', '') as wheelchair_access
   ,  st.departure_time as departure_departure_time
   ,  st.arrival_time as departure_arrival_time
+  ,  a.aid as origin_aid
   ,  a.agency_name as departure_agency_name
-  ,  a.agency_url as departure_agency_url 
+  ,  a.agency_url as departure_agency_url
   ,  a.agency_info as departure_agency_info
-  ,  a.agency_phone as departure_agency_phone  
+  ,  a.agency_phone as departure_agency_phone
   ,  a.agency_email as departure_agency_email
+  ,  a.agency_fare_url as departure_agency_fare_url
   ,  tt.transportation_type_name as departure_transportation_type
   , st.stop_sequence
   , t.rid
@@ -2439,49 +2599,56 @@ where s.stop_name = :o
 and p.code = :opc
 and :epoc between c.start_date and c.end_date
 and dayname(:date) in (if(c.monday = 1, 'monday', ''), if(c.tuesday = 1, 'tuesday', ''), if(c.wednesday = 1, 'wednesday', ''), if(c.thursday = 1, 'thursday', ''), if(c.friday = 1, 'friday', ''), if(c.saturday = 1, 'saturday', ''), if(c.sunday = 1, 'sunday', ''))
-
 ) origin
 join
 (
 select s.stop_name as from_stop_name
+  , s.zone_id as from_zone_id
+  , s.sid as from_transfer_point_sid
   , st.stop_sequence as from_stop_sequence
   , st.arrival_time as departure_transfer_departure_time
   , t.rid as from_rid
-  , s2.stop_name as destination_transfer_location
+  , s2.stop_name as to_stop_name
+  , s2.zone_id as to_zone_id
+  , s2.sid as to_transfer_point_sid
   , st2.stop_sequence as to_stop_sequence
   , st2.departure_time as destination_transfer_arrival_time
   , t2.rid as to_rid
 from transfers tr
 join stops s
-on s.sid = tr.from_stop_id
+  on s.sid = tr.from_stop_id
 join stop_times st
-on st.tid = s.sid
+  on st.tid = s.sid
 join trips t
-on t.tid = st.tid
+  on t.tid = st.tid
 join stops s2
-on s2.sid = tr.to_stop_id
+  on s2.sid = tr.to_stop_id
 join stop_times st2
-on st2.tid = s2.sid
+  on st2.tid = s2.sid
 join trips t2
-on t2.tid = st2.tid) transfer_points
-on transfer_points.from_rid = origin.rid
-and origin.stop_sequence < transfer_points.from_stop_sequence
+  on t2.tid = st2.tid
+) transfer_points
+  on transfer_points.from_rid = origin.rid
+  and origin.stop_sequence < transfer_points.from_stop_sequence
 join
 (select s.sid as destination_sid
+  ,  s.zone_id as destination_zone_id
   ,  s.stop_name as destination_city
   ,  s.stop_desc as destination_description
   ,  st.arrival_time as destination_arrival_time
   ,  st.departure_time as destination_departure_time
+  ,  a.aid as destination_aid
   ,  a.agency_name as destination_agency_name
   ,  a.agency_url as destination_agency_url
+  ,  a.agency_fare_url as destination_agency_fare_url
   ,  a.agency_info as destination_agency_info
   ,  a.agency_phone as destination_agency_phone
   ,  a.agency_email as destination_agency_email
   ,  st.stop_sequence
-  ,  r.rid 
-  , r.route_long_name
+  ,  r.rid
+  ,  r.route_long_name
   ,  tt.transportation_type_name as destination_transportation_type
-  , dayname(:date) as destination_day
+  ,  dayname(:date) as destination_day
   ,  :epoc as date
 from stops s
 join provinces p
@@ -2503,17 +2670,71 @@ and :epoc between c.start_date and c.end_date
 and dayname(:date) in (if(c.monday = 1, 'monday', ''), if(c.tuesday = 1, 'tuesday', ''), if(c.wednesday = 1, 'wednesday', ''), if(c.thursday = 1, 'thursday', ''), if(c.friday = 1, 'friday', ''), if(c.saturday = 1, 'saturday', ''), if(c.sunday = 1, 'sunday', ''))
 ) destination
 on transfer_points.to_rid = destination.rid
-and destination.stop_sequence > transfer_points.to_stop_sequence
-    order by time(departure_departure_time) asc, time(destination_arrival_time) asc
+  and destination.stop_sequence > transfer_points.to_stop_sequence
+
+left join fare_rules fr
+  on fr.origin_id = origin.departure_zone_id
+  and fr.destination_id = transfer_points.from_zone_id
+left join fare_attributes fa
+  on fa.fare_id = fr.fare_id
+
+left join fare_rules fr2
+  on fr2.origin_id = transfer_points.to_zone_id
+  and fr2.destination_id = destination.destination_zone_id
+left join fare_attributes fa2
+  on fa2.fare_id = fr2.fare_id
+
+left join route_service_features rsf
+  on rsf.rid = destination.rid
+left join service_features sf
+  on sf.service_feature_id = rsf.service_feature_id
+
+left join agency_service_features asf
+  on asf.aid = destination.destination_aid
+left join service_features sf2
+  on sf2.service_feature_id = asf.service_feature_id
+
+left join stop_service_features ssf
+  on ssf.sid = destination.destination_sid
+left join service_features sf3
+  on sf3.service_feature_id = ssf.service_feature_id
+
+left join stop_service_features ssf2
+  on ssf2.sid = transfer_points.to_transfer_point_sid
+left join service_features sf4
+  on sf4.service_feature_id = ssf2.service_feature_id
+
+left join route_service_features rsf2
+  on rsf2.rid = origin.rid
+left join service_features sf5
+  on sf5.service_feature_id = rsf2.service_feature_id
+
+left join agency_service_features asf2
+  on asf2.aid = origin.origin_aid
+left join service_features sf6
+  on sf6.service_feature_id = asf2.service_feature_id
+
+left join stop_service_features ssf3
+  on ssf3.sid = origin.departure_sid
+left join service_features sf7
+  on sf7.service_feature_id = ssf.service_feature_id
+
+left join stop_service_features ssf4
+  on ssf4.sid = transfer_points.from_transfer_point_sid
+left join service_features sf8
+  on sf8.service_feature_id = ssf4.service_feature_id
+group by origin_aid, origin.rid, departure_sid, from_transfer_point_sid, destination_aid, destination.rid, destination_sid, to_transfer_point_sid
+order by time(departure_departure_time) asc, time(destination_arrival_time) asc
 SQL;
 
-
-  $result = db_query($query, $args); 
-
+  $result = db_query($query, $args);
   while ($match = $result->fetchObject()){
     $match->search_type = 'one_transfer';
     $match->num_transfers = 1;
-    array_push($results, $match);
+
+    watchdog('result', serialize($match));
+
+    $results[] = $match;
   }
 
   return $results;
@@ -2524,20 +2745,20 @@ function fetch_one_service_area_results($form, &$form_state, &$results, $args) {
   //brute force draft 1
 
 
-  //grab all of the 
+  //grab all of the
   $polygons = get_polygons();
 }
 
 function get_polygons(){
   $polygons = array();
-  
+
   $query =<<<SQL
 select rsa.rid
   ,  rsa.service_area_id
   ,  sap.shape_point_lat
   ,  sap.shape_point_long
-  ,  sap.shape_point_sequence 
-from 
+  ,  sap.shape_point_sequence
+from
   routes_service_areas rsa
 join
   service_area_points sap
@@ -2545,10 +2766,10 @@ join
 order by service_area_id, shape_point_sequence
 SQL;
 
-$result = db_query($query); 
+$result = db_query($query);
 
   while ($polygon_point = $result->fetchObject()){
-    //$polygons[$polygon_point->service_area_id] = 
+    //$polygons[$polygon_point->service_area_id] =
     //array_push($results, $match);
   }
 
@@ -2559,7 +2780,15 @@ $result = db_query($query);
 function gtfs_manager_transfer_form($form, &$form_state, $transfers) {
   //loop through transfers
   $form['#id'] = 'transfer-form';
-  
+
+  $active_transfers = fetch_active_transfers();
+
+  $variables['transfers'] = $active_transfers;
+
+  $form['active_transfers_report'] = array(
+    '#markup' => theme('transfer_report', $variables),
+  );
+
   //save data for later
   $form['#transfers'] = $transfers;
   $form_state['transfers'] = $transfers;
@@ -2586,6 +2815,47 @@ function gtfs_manager_transfer_form($form, &$form_state, $transfers) {
 
 }
 
+function fetch_active_transfers(){
+  $transfers = array();
+
+  $query =<<<SQL
+  select tr.from_stop_id
+    ,  tr.to_stop_id
+    ,  tr.created_by
+    ,  tr.created_at
+    ,  tr.ignore
+    ,  s.stop_name
+    ,  r.route_long_name as from_route_name
+    ,  r2.route_long_name as to_route_name
+  from
+    transfers tr
+  join stops s
+    on s.sid = tr.from_stop_id
+  join stop_times st
+    on st.sid = s.sid
+  join trips t
+    on t.tid = st.tid
+  join routes r
+    on r.rid = t.rid
+  join stops s2
+    on s2.sid = tr.to_stop_id
+  join stop_times st2
+    on st2.sid = s2.sid
+  join trips t2
+    on t2.tid = st2.tid
+  join routes r2
+    on r2.rid = t2.rid
+SQL;
+
+  $result = db_query($query);
+
+  while ($transfer = $result->fetchObject()) {
+    $transfers[] = $transfer;
+  }
+
+  return $transfers;
+}
+
 function gtfs_manager_suggest_transfers(){
 
   $query =<<<SQL
@@ -2610,7 +2880,7 @@ select s.stop_name as departing_stop_name
         join routes r3
           on r3.rid = t3.rid
         where r3.rid = r.rid
-        and st3.stop_sequence = st.stop_sequence + 1    
+        and st3.stop_sequence = st.stop_sequence + 1
      ), 'last-stop') as first_next
 ,  ifnull((select s3.stop_name from
         stops s3
@@ -2621,7 +2891,7 @@ select s.stop_name as departing_stop_name
         join routes r3
           on r3.rid = t3.rid
         where r3.rid = r.rid
-        and st3.stop_sequence = st.stop_sequence - 1    
+        and st3.stop_sequence = st.stop_sequence - 1
      ), 'first-stop') as first_prev
      ,  ifnull((select s4.stop_name from
         stops s4
@@ -2632,7 +2902,7 @@ select s.stop_name as departing_stop_name
         join routes r4
           on r4.rid = t4.rid
         where r4.rid = r2.rid
-        and st4.stop_sequence = st2.stop_sequence + 1    
+        and st4.stop_sequence = st2.stop_sequence + 1
      ), 'last-stop') as second_next
      ,  ifnull((select s4.stop_name from
         stops s4
@@ -2643,7 +2913,7 @@ select s.stop_name as departing_stop_name
         join routes r4
           on r4.rid = t4.rid
         where r4.rid = r2.rid
-        and st4.stop_sequence = st2.stop_sequence - 1    
+        and st4.stop_sequence = st2.stop_sequence - 1
      ), 'first-stop') as second_prev
 from
  stops s
@@ -2669,11 +2939,10 @@ join agencies a2
   on a2.aid = r2.aid
 where r2.rid != r.rid
 having first_next != second_next
-  and first_prev != second_next
-limit 50; 
+  and first_prev != second_next;
 SQL;
 
-  $result = db_query($query); 
+  $result = db_query($query);
 
   $transfers['data'] = array();
   $transfers['options'] = array();
@@ -2684,7 +2953,7 @@ SQL;
     //matched after the submit
     $transfer->index = $i;
     array_push($transfers['data'], $transfer);
-    $transfers['options'][$i] = 'Transfer available at ' 
+    $transfers['options'][$i] = 'Transfer available at '
       . $transfer->arrival_stop_name
       . ' from route <em>'
       .  $transfer->arrival_route_long_name
@@ -2704,6 +2973,7 @@ SQL;
 
 function gtfs_manager_transfer_form_submit($form, &$form_state) {
   $selected = $form_state['values']['transfer_locations'];
+  watchdog('selected', $selected);
   foreach ($form_state['transfers']['data'] as $option) {
     //look for transfer index in $selections
     if (in_array($option->index, $selected)) {
@@ -2719,7 +2989,7 @@ function gtfs_manager_transfer_form_submit($form, &$form_state) {
       $interval = $arrival->diff($departure);
 
       $transfer->min_transfer_time = $interval->format('%s');
-      
+
       $transfer->created_at = REQUEST_TIME;
       $transfer->updated_at = REQUEST_TIME;
       $transfer->created_by = 'admin';
@@ -2741,9 +3011,9 @@ function transfer_save($transfer) {
 function capture_search_data(&$form_state, $num_results, $return_num_results) {
   $user_search = entity_get_controller('user_search')->create();
 
-  $user_search->origin_string = 
+  $user_search->origin_string =
     $form_state['values']['gtfs_manager_search_origin'];
-  $user_search->destination_string = 
+  $user_search->destination_string =
     $form_state['values']['gtfs_manager_search_destination'];
   $user_search->travel_date =
     strtotime($form_state['values']['gtfs_manager_search_date']);
@@ -2755,7 +3025,7 @@ function capture_search_data(&$form_state, $num_results, $return_num_results) {
   $user_search->return_num_results = $return_num_results;
 
   if (!empty($form_state['values']['gtfs_manager_return_date'])) {
-    $user_search->return_date = 
+    $user_search->return_date =
       $form_state['values']['gtfs_manager_return_date'];
   }
 
@@ -2766,7 +3036,7 @@ function capture_search_data(&$form_state, $num_results, $return_num_results) {
 
 function gtfs_manager_stop_name_autocomplete($string) {
   $matches = array();
- 
+
   // The stops table
   $query = db_select('stops', 's')
     ->fields('s', array('stop_name'))
@@ -2777,16 +3047,216 @@ function gtfs_manager_stop_name_autocomplete($string) {
    $return = $query ->condition('s.stop_name', '%' . db_like($string) . '%', 'LIKE')
     ->range(0, 10)
     ->execute();
- 
-  // add matches to $matches  
+
+  // add matches to $matches
   foreach ($return as $row) {
     $match = check_plain($row->stop_name);
-    
+
     if (!empty($row->code)) {
       $match .= ' (' . check_plain($row->code) . ')';
     }
-    $matches[$match] = $match;     
+    $matches[$match] = $match;
   }
   // return for JS
   drupal_json_output($matches);
+}
+
+/*
+ * returns an array of available service features
+ * formatted for checkboxes
+ */
+function fetch_service_features() {
+  $result = db_select('service_features', 'sf')
+    ->fields('sf', array('service_feature_id',
+			 'service_feature_name',
+			 'service_feature_icon_url'
+    ))
+    ->execute();
+
+  $service_features = array();
+
+  while ($service_feature = $result->fetchObject()) {
+
+    $variables = array('path' => $service_feature->service_feature_icon_url,
+		       'height' => '25px',
+		       'width' => '25px'
+		       );
+
+    $img = theme('image', $variables);
+
+    $service_features[$service_feature->service_feature_id]
+      = $img
+      . '<br />'
+      . '<b>'
+      . $service_feature->service_feature_name
+      . '</b>';
+  }
+
+  return $service_features;
+}
+
+function fetch_time_zones() {
+  $options = array();
+
+  $time_zones = entity_load('time_zone', FALSE);
+
+  if ($time_zones) {
+    foreach ($time_zones as $time_zone) {
+      $options[$time_zone->time_zone_id] = t($time_zone->name);
+    }
+  }
+  return $options;
+}
+
+/*
+ * returns a string of image tags for the given result
+ *
+ * @param $result a single result object from a search query
+ */
+function features_for($result) {
+  $features = '';
+
+  if ($result->search_type == 'one_transfer') {
+
+    $origin_features = '';
+    $destination_features = '';
+
+    $origin_agency_features = split_map_features($result->origin_agency_service_features);
+    $origin_route_features = split_map_features($result->origin_route_service_features);
+    $origin_from_stop_features = split_map_features($result->origin_from_stop_service_features);
+    $origin_transfer_stop_features = split_map_features($result->origin_transfer_stop_service_features);
+
+    $destination_agency_features = split_map_features($result->destination_agency_service_features);
+    $destination_route_features = split_map_features($result->destination_route_service_features);
+    $destination_to_stop_features = split_map_features($result->destination_to_stop_service_features);
+    $destination_transfer_stop_features = split_map_features($result->destination_transfer_stop_service_features);
+
+    $origin_features .= wheelchair_access_for($origin_agency_features, $origin_route_features, $origin_from_stop_features, $origin_transfer_stop_features);
+    $destination_features .= wheelchair_access_for($destination_agency_features, $destination_route_features, $destination_transfer_stop_features, $destination_to_stop_features);
+
+    //remove wheelechair acess from arrays
+    unset($origin_agency_features['Wheelchair Access']);
+    unset($origin_route_features['Wheelchair Access']);
+    unset($origin_from_stop_features['Wheelchair Access']);
+    unset($origin_transfer_stop_features['Wheelchair Access']);
+
+    unset($destination_agency_features['Wheelchair Access']);
+    unset($destination_route_features['Wheelchair Access']);
+    unset($destination_to_stop_features['Wheelchair Access']);
+    unset($destination_transfer_stop_features['Wheelchair Access']);
+
+    //next capture all distinct service features by merging the arrays
+    $origin_feature_list = array_merge($origin_agency_features, $origin_route_features);
+    $origin_feature_list = array_merge($origin_feature_list, $origin_from_stop_features);
+    $origin_feature_list = array_merge($origin_feature_list, $origin_transfer_stop_features);
+
+    $destination_feature_list = array_merge($destination_agency_features, $destination_route_features);
+    $destination_feature_list = array_merge($destination_feature_list, $destination_to_stop_features);
+    $destination_feature_list = array_merge($destination_feature_list, $destination_transfer_stop_features);
+
+    foreach ($origin_feature_list as $key => $feature_icon_url) {
+      $image_variables = array(
+        'path' => $feature_icon_url,
+        'height' => '25px',
+        'width' => '25px'
+      );
+
+      $origin_features .= theme('image', $image_variables);
+    }
+
+    foreach ($destination_feature_list as $key => $feature_icon_url) {
+      $image_variables = array(
+        'path' => $feature_icon_url,
+        'height' => '25px',
+        'width' => '25px'
+      );
+
+      $destination_features .= theme('image', $image_variables);
+    }
+
+  $features .= $origin_features . '<br />' . $destination_features;
+
+  } else {
+
+    $agency_features = split_map_features($result->agency_service_features);
+    $route_features = split_map_features($result->route_service_features);
+    $from_stop_features = split_map_features($result->from_stop_service_features);
+    $to_stop_features = split_map_features($result->to_stop_service_features);
+
+    $features .= wheelchair_access_for($agency_features, $route_features, $from_stop_features, $to_stop_features);
+
+    //remove wheelechair acess from arrays
+    unset($agency_features['Wheelchair Access']);
+    unset($route_features['Wheelchair Access']);
+    unset($from_stop_features['Wheelchair Access']);
+    unset($to_stop_features['Wheelchair Access']);
+
+    //next capture all distinct service features by merging the arrays
+    $feature_list = array_merge($agency_features, $route_features);
+    $feature_list = array_merge($feature_list, $from_stop_features);
+    $feature_list = array_merge($feature_list, $to_stop_features);
+
+    foreach ($feature_list as $key => $feature_icon_url) {
+      $image_variables = array(
+        'path' => $feature_icon_url,
+        'height' => '25px',
+        'width' => '25px'
+      );
+
+      $features .= theme('image', $image_variables);
+    }
+  }
+  return $features;
+}
+
+/*
+ * splits feature string and then maps it as associative array
+ * with the feature name as the key and the url as the value
+ *
+ * @param $features a string of service features joined by commas
+ */
+function split_map_features($feature_string){
+  $features = array();
+
+  if(!is_null($feature_string)) {
+    $elements = explode(',', $feature_string);
+
+    foreach ($elements as $key => $feature) {
+      $name_url = explode("-", $feature);
+
+      if (!array_key_exists($name_url[0], $features)) {
+        $features[$name_url[0]] = $name_url[1];
+      }
+
+    }
+  }
+  return $features;
+}
+
+
+/*
+ * Compares collections of agency, route, and stop service features to determine if
+ * a given route should display wheelchair access for a given search result
+ */
+function wheelchair_access_for($agency_features, $route_features, $from_stop_features, $to_stop_features){
+  $feature_string = '&nbsp;';
+  /*
+   * Wheelchair access logic
+   * Wheelchair access must be select at either the agency or route level to indicate that the vehicle has handicap access
+   * It must also be selected for the origin and destination stops to indicate that both can physically accommodate a vehicle
+   *
+   * In the future this could be improved to allow the user to indicate such logic
+   */
+  if ((array_key_exists('Wheelchair Access', $agency_features) || array_key_exists('Wheelchair Access', $route_features))
+        && (array_key_exists('Wheelchair Access', $from_stop_features) && array_key_exists('Wheelchair Access', $to_stop_features))) {
+
+    $image_variables = array(
+      'path' => $from_stop_features['Wheelchair Access'],
+      'height' => '25px',
+      'width' => '25px'
+    );
+
+    $feature_string .= theme('image', $image_variables);
+  }
+  return $feature_string;
 }

@@ -14,7 +14,7 @@
  * calendar_dates(exceptions)
  * Fares
  * Transfers
- * 
+ *
  * @see https://developers.google.com/transit/gtfs/reference
  * for more information on the data model
  */
@@ -207,7 +207,7 @@ function gtfs_manager_schema() {
       ),
     ),
   );
-  
+
   // transportation types table
   $schema['transportation_types'] = array(
     'description' => 'GTFS Manager transportation types table',
@@ -250,7 +250,7 @@ function gtfs_manager_schema() {
         'length' => 25,
         'not null' => TRUE,
         'default' => '',
-      ),  
+      ),
     ),
     'indexes' => array(
       'transportation_type_id' => array('transportation_type_id'),
@@ -262,7 +262,7 @@ function gtfs_manager_schema() {
   $schema['stops'] = array(
     'description' => 'The table for a route\'s different stops.',
     'fields' => array(
-      'sid' => array(	   
+      'sid' => array(
         'description' => 'The primary identifier for a stop.',
         'type' => 'serial',
         'unsigned' => TRUE,
@@ -273,7 +273,7 @@ function gtfs_manager_schema() {
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
-        'default' => '',   
+        'default' => '',
       ),
       'stop_desc' => array(
         'description' => 'Optional, a description of the stop.',
@@ -301,7 +301,7 @@ function gtfs_manager_schema() {
       'wheelchair_boarding' => array(
         'description' => 'Boolean for wheelchair access',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
@@ -351,7 +351,7 @@ function gtfs_manager_schema() {
     'primary key' => array('sid'),
   );
 
-  // trips table  
+  // trips table
   $schema['trips'] = array(
     'description' => 'The table for a route\'s different trips or legs',
     'fields' => array(
@@ -417,17 +417,17 @@ function gtfs_manager_schema() {
       'services' => array(
         'table' => 'calendar',
         'columns' => array(
-          'service_id' => 'service_id', 
+          'service_id' => 'service_id',
 	      ),
       ),
-    ),      
+    ),
   );
-  
+
   // stop_times table
   $schema['stop_times'] = array(
     'description' => 'The table for a route\'s different stop times.',
     'fields' => array(
-      'tid' => array(	   
+      'tid' => array(
         'description' => 'Combines with sid to create composite key.',
         'type' => 'int',
         'unsigned' => TRUE,
@@ -502,17 +502,17 @@ function gtfs_manager_schema() {
       'services' => array(
         'table' => 'stops',
         'columns' => array(
-          'sid' => 'sid', 
+          'sid' => 'sid',
 	      ),
       ),
-    ),  
+    ),
   );
 
   // calendar table
   $schema['calendar'] = array(
    'description' => 'The table for a route\'s different stop times.',
     'fields' => array(
-      'service_id' => array(	   
+      'service_id' => array(
         'description' => 'Unique identifier for a schedule.',
         'type' => 'serial',
         'unsigned' => TRUE,
@@ -520,49 +520,49 @@ function gtfs_manager_schema() {
       'monday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'tuesday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'wednesday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'thursday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'friday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'saturday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'sunday' => array(
         'description' => 'Boolean for this day of the week',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
@@ -612,14 +612,14 @@ function gtfs_manager_schema() {
   $schema['calendar_dates'] = array(
    'description' => 'Contains calendar exceptions.',
     'fields' => array(
-      'service_id' => array(	   
+      'service_id' => array(
         'description' => 'Foreign key from calendar table.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'exception_date' => array(
-        'description' => 'The date of the eception',	      
+        'description' => 'The date of the eception',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -664,7 +664,7 @@ function gtfs_manager_schema() {
          'service_id' => 'service_id',
         ),
       ),
-    ),   
+    ),
   );
 
   // transfers table
@@ -694,7 +694,7 @@ function gtfs_manager_schema() {
       'ignore' => array(
         'description' => 'Ignore this transfer',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
@@ -800,7 +800,7 @@ function gtfs_manager_schema() {
   $schema['fare_attributes'] = array(
     'description' => 'Contains fare information.',
     'fields' => array(
-      'fare_id' => array(	   
+      'fare_id' => array(
         'description' => 'Unique identifier for a fare.',
         'type' => 'serial',
         'unsigned' => TRUE,
@@ -820,7 +820,7 @@ function gtfs_manager_schema() {
       'payment_method' => array(
         'description' => 'Binary, 0 for fare paid onboard and 1 otherwise',
         'type' => 'char',
-        'binary' => TRUE, 
+        'binary' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
@@ -966,6 +966,9 @@ function gtfs_manager_schema() {
       ),
     ),
     'primary key' => array('rid', 'service_feature_id'),
+    'unique keys' => array(
+   		'rid_service_feature_id' => array('rid', 'service_feature_id'),
+    ),
    );
 
   // many to many table for agency service features
@@ -1008,6 +1011,9 @@ function gtfs_manager_schema() {
       ),
     ),
     'primary key' => array('aid', 'service_feature_id'),
+    'unique keys' => array(
+   		'aid_service_feature_id' => array('aid', 'service_feature_id'),
+    ),
    );
 
   // many to many table for agency service features
@@ -1050,6 +1056,9 @@ function gtfs_manager_schema() {
       ),
     ),
     'primary key' => array('sid', 'service_feature_id'),
+    'unique keys' => array(
+   		'sid_service_feature_id' => array('sid', 'service_feature_id'),
+    ),
    );
 
   // many to many table for agency service features
@@ -1319,7 +1328,7 @@ function gtfs_manager_schema() {
       'service_area_id' => array('service_area_id'),
     ),
   );
-  
+
  //add a province table
    $schema['provinces'] = array(
     'description' => 'contins provinces and states',
@@ -1705,6 +1714,82 @@ function gtfs_manager_schema() {
     'primary key' => array('fuel_type_id'),
   );
 
+// cities table
+  $schema['cities'] = array(
+    'description' => 'The table for a cities\'s and their lat and long.',
+    'fields' => array(
+      'city_id' => array(
+        'description' => 'The primary identifier for a city.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'country_id' =>  array(
+        'description' => 'The id of the country associated with this city',
+        'type' => 'int',
+      ),
+      'province_id' =>  array(
+        'description' => 'The id of the province associated with this city',
+        'type' => 'int',
+      ),
+
+      'city_name' => array(
+        'description' => 'The name of this city.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'city_lat' => array(
+        'description' => 'The lattitude for the city.',
+        'type' => 'float',
+        'size' => 'big',
+        'precision' => 8,
+        'not null' => TRUE,
+        'default' => '0.0',
+      ),
+      'city_long' => array(
+        'description' => 'The longitude for the city.',
+        'type' => 'float',
+        'size' => 'big',
+        'precision' => 8,
+        'not null' => TRUE,
+        'default' => '0.0',
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the city record was last updated',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'city_id' => array('city_id'),
+    ),
+    'primary key' => array('city_id'),
+  );
+
+
 
   return $schema;
 }
@@ -1849,7 +1934,7 @@ function gtfs_manager_update_1() {
 	  'not null' => TRUE,
 	  'default' => '0.0',
 	  ));
-  
+
   db_change_field('stops', 'stop_easting', 'stop_long',
     array('description' => 'The longitude for the stop',
 	  'type' => 'float',
@@ -1886,12 +1971,12 @@ function gtfs_manager_update_1() {
 	  'default' => 'point-to-point',
      ));
 
-  
+
 }
 
 
 function gtfs_manager_update_2() {
-  
+
      db_add_field('stops', 'province_id',
     array(
   	  'description' => 'The id of the procvince associated with this stop',
@@ -1903,16 +1988,16 @@ function gtfs_manager_update_2() {
   	  'description' => 'The id of the timezone associated with this stop',
   	  'type' => 'int',
    ));
-   
+
    db_add_field('transfers', 'ignore',
 	array(
         'description' => 'Ignore this transfer',
 	'type' => 'char',
-	'binary' => TRUE, 
+	'binary' => TRUE,
 	'not null' => TRUE,
 	'default' => 0,
    ));
-   
+
    //add a province table
    $schema['provinces'] = array(
     'description' => 'contins provinces and states',
@@ -2099,7 +2184,7 @@ function gtfs_manager_update_5() {
       'description' => 'The id of the zone associated with this agency',
       'type' => 'int',
    ));
-  
+
   db_add_field('agencies', 'agency_lang',
     array(
       'description' => 'The language of the agency',
@@ -2344,9 +2429,9 @@ function gtfs_manager_update_6() {
     ),
     'primary key' => array('fuel_type_id'),
   );
-  
 
-  db_create_table('phone_numbers', $schema['phone_numbers']); 
+
+  db_create_table('phone_numbers', $schema['phone_numbers']);
   db_create_table('phone_number_types', $schema['phone_number_types']);
   db_create_table('vehicles', $schema['vehicles']);
   db_create_table('fuel_types', $schema['fuel_types']);
@@ -2367,20 +2452,105 @@ function gtfs_manager_update_7() {
     'type' => 'serial',
     'unsigned' => TRUE,
     'not null' => TRUE,
-  );    
+  );
 
   //fix the keys for these tables because an entity cannot have a
   //composite key
   db_drop_primary_key('agency_service_features');
-  db_add_field('agency_service_features', 'agency_service_feature_id', $field);
-  db_add_primary_key('agency_service_features', array(''));
+  db_add_field('agency_service_features', 'agency_service_feature_id', $field, array('primary key' => array('agency_service_feature_id')));
+  //db_add_primary_key('agency_service_features', array('agency_service_feature_id'));
 
   db_drop_primary_key('route_service_features');
-  db_add_field('route_service_features', 'route_service_feature_id', $field);
-  db_add_primary_key('route_service_features', array(''));
+  db_add_field('route_service_features', 'route_service_feature_id', $field, array('primary key' => array('route_service_feature_id')));
+  //db_add_primary_key('route_service_features', array('route_service_feature_id'));
 
   db_drop_primary_key('stop_service_features');
-  db_add_field('stop_service_features', 'stop_service_feature_id', $field);
-  db_add_primary_key('stop_service_features', array(''));
+    db_add_field('stop_service_features', 'stop_service_feature_id', $field, array('primary key' => array('stop_service_feature_id')));
+  //db_add_primary_key('stop_service_features', array('stop_service_feature_id'));
+
+}
+
+function gtfs_manager_update_8() {
+  //enforce no duplicate features
+  db_add_unique_key('agency_service_features', 'aid_service_feature_id', array('aid', 'service_feature_id'));
+  db_add_unique_key('route_service_features', 'rid_service_feature_id', array('rid', 'service_feature_id'));
+  db_add_unique_key('stop_service_features', 'sid_service_feature_id', array('sid', 'service_feature_id'));
+
+  // cities table
+  $schema['cities'] = array(
+    'description' => 'The table for a cities\'s and their lat and long.',
+    'fields' => array(
+      'city_id' => array(
+        'description' => 'The primary identifier for a city.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'country_id' =>  array(
+        'description' => 'The id of the country associated with this city',
+        'type' => 'int',
+      ),
+      'province_id' =>  array(
+        'description' => 'The id of the province associated with this city',
+        'type' => 'int',
+      ),
+
+      'city_name' => array(
+        'description' => 'The name of this city.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'city_lat' => array(
+        'description' => 'The lattitude for the city.',
+        'type' => 'float',
+        'size' => 'big',
+        'precision' => 8,
+        'not null' => TRUE,
+        'default' => '0.0',
+      ),
+      'city_long' => array(
+        'description' => 'The longitude for the city.',
+        'type' => 'float',
+        'size' => 'big',
+        'precision' => 8,
+        'not null' => TRUE,
+        'default' => '0.0',
+      ),
+      'created_at' => array(
+         'description' => 'The agency creation date epoc',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the city record was last updated',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'city_id' => array('city_id'),
+    ),
+    'primary key' => array('city_id'),
+  );
+
+  db_create_table('cities', $schema['cities']);
 
 }

@@ -1,0 +1,32 @@
+delete from go_maritimes.agencies;
+insert into go_maritimes.agencies (select * from gom1307305214419.agencies);
+
+delete from go_maritimes.routes;
+insert into go_maritimes.routes (select * from gom1307305214419.routes);
+
+delete from go_maritimes.stops;
+insert into go_maritimes.stops (select * from gom1307305214419.stops);
+
+delete from go_maritimes.stop_times;
+insert into go_maritimes.stop_times (select * from gom1307305214419.stop_times);
+
+delete from go_maritimes.trips;
+insert into go_maritimes.trips (select * from gom1307305214419.trips);
+
+delete from go_maritimes.calendar;
+insert into go_maritimes.calendar (select * from gom1307305214419.calendar);
+
+delete from go_maritimes.currency_types;
+insert into go_maritimes.currency_types (select * from gom1307305214419.currency_types);
+
+delete from go_maritimes.fare_attributes;
+insert into go_maritimes.fare_attributes (select * from gom1307305214419.fare_attributes);
+
+delete from go_maritimes.fare_rules;
+insert into go_maritimes.fare_rules (select * from gom1307305214419.fare_rules);
+
+delete from go_maritimes.provinces;
+insert into go_maritimes.provinces (select * from gom1307305214419.provinces);
+
+delete from go_maritimes.transfers;
+insert into go_maritimes.transfers (select * from gom1307305214419.transfers);

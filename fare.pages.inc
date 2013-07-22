@@ -109,7 +109,7 @@ function gtfs_manager_fare_form_submit($form, &$form_state) {
 
   drupal_set_message(t('Fare saved'));
 
-  $form_state['redirect'] = 'fare/' . $fare->fare_id;
+  $form_state['redirect'] = 'agencies/';
 
 }
 
@@ -319,13 +319,14 @@ function fetch_fares() {
 	       'ct', 
 	       'ct.currency_type_id = fa.currency_type_id'
 	       );
+  $query->orderBy('price', 'ASC');
 
   $result = $query->fields('fa', array('fare_id', 'price'))
     ->fields('ct', array('currency_type_code'))
     ->execute();
   
   $fares = array();
-  $fares[0] = 'Chose Fare';
+  $fares[0] = 'Choose Fare';
 
   while ($fare = $result->fetchObject()) {
     $fares[$fare->fare_id] = money_format('%i', $fare->price) 

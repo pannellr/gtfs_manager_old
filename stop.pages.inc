@@ -3,7 +3,7 @@
  * Form builder for new trip, stop, and stop_time
  */
 function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null) {
-  
+
   //collect the route id
   $route_id = isset($route) ? $route->rid : $stop->rid;
 
@@ -66,7 +66,7 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
     '#size' => 24,
     '#default_value' => $stop->stop_lat,
     '#required' => TRUE,
-  );  
+  );
 
   //tetfield for stop longitude
   $form['gtfs_manager_stop_long'] = array(
@@ -76,7 +76,7 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
     '#size' => 24,
     '#default_value' => $stop->stop_long,
     '#required' => TRUE,
-  ); 
+  );
 
   //checkbox for wheelchair access
   $form['gtfs_manager_wheelchair_boarding'] = array(
@@ -115,7 +115,7 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
     '#default_value' => ($stop->stop_sequence - 1),
     '#required' => TRUE,
   );
-  
+
   //start date popup
   $form['gtfs_manager_schedule_start_date'] = array(
     '#type' => 'date_popup',
@@ -143,8 +143,8 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
   $form['gtfs_manager_schedule_days'] = array(
     '#type' => 'checkboxes',
     '#options' => drupal_map_assoc(array(
-			t('monday'), 
-			t('tuesday'), 
+			t('monday'),
+			t('tuesday'),
 			t('wednesday'),
 			t('thursday'),
 			t('friday'),
@@ -165,7 +165,7 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
     '#weight' => 5,
     '#submit' => array('gtfs_manager_stop_form_submit'),
   );
-  
+
   // display delete button in edit form
   if (!empty($stop->sid)) {
     $form['buttons']['delete'] = array(
@@ -206,7 +206,7 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   $trip = entity_get_controller('trip')->create($trip_id);
   $stop_time = entity_get_controller('stop_time')->create($trip_id);
   $calendar = entity_get_controller('calendar')->create($service_id);
-  
+
   // if it is a new record set created_by
   if (empty($stop->created_by)) {
     $stop->created_by = $user->name;
@@ -218,34 +218,34 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   $stop->updated_by = $user->name;
   $trip->updated_by = $user->name;
   $stop_time->updated_by = $user->name;
-  $calendar->updated_by = $user->name;  
+  $calendar->updated_by = $user->name;
 
   //Calendar Save
-  $calendar->monday = 
-    !empty($form_state['values']['gtfs_manager_schedule_days']['monday']) 
+  $calendar->monday =
+    !empty($form_state['values']['gtfs_manager_schedule_days']['monday'])
     ? 1 : 0;
-  $calendar->tuesday = 
-    !empty($form_state['values']['gtfs_manager_schedule_days']['tuesday']) 
+  $calendar->tuesday =
+    !empty($form_state['values']['gtfs_manager_schedule_days']['tuesday'])
     ? 1 : 0;
-  $calendar->wednesday = 
-    !empty($form_state['values']['gtfs_manager_schedule_days']['wednesday']) 
+  $calendar->wednesday =
+    !empty($form_state['values']['gtfs_manager_schedule_days']['wednesday'])
     ? 1 : 0;
-  $calendar->thursday = 
+  $calendar->thursday =
     !empty($form_state['values']['gtfs_manager_schedule_days']['thursday'])
     ? 1 : 0;
-  $calendar->friday = 
-    !empty($form_state['values']['gtfs_manager_schedule_days']['friday']) 
+  $calendar->friday =
+    !empty($form_state['values']['gtfs_manager_schedule_days']['friday'])
     ? 1 : 0;
-  $calendar->saturday = 
+  $calendar->saturday =
     !empty($form_state['values']['gtfs_manager_schedule_days']['saturday'])
     ? 1 : 0;
-  $calendar->sunday = 
-    !empty($form_state['values']['gtfs_manager_schedule_days']['sunday']) 
+  $calendar->sunday =
+    !empty($form_state['values']['gtfs_manager_schedule_days']['sunday'])
     ? 1 : 0;
 
-  $calendar->start_date = 
+  $calendar->start_date =
     strtotime($form_state['values']['gtfs_manager_schedule_start_date']);
-  $calendar->end_date = 
+  $calendar->end_date =
     strtotime($form_state['values']['gtfs_manager_schedule_end_date']);
 
   // notify field widgets
@@ -257,7 +257,7 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   // Trip Save
   $trip->rid = $form_state['values']['gtfs_manager_rid'];
   $trip->service_id = $calendar->service_id;
-  
+
   field_attach_submit('trip', $trip, $form, $form_state);
 
   trip_save($trip);
@@ -267,7 +267,7 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   $stop->stop_desc = trim($form_state['values']['gtfs_manager_stop_desc']);
   $stop->stop_lat = $form_state['values']['gtfs_manager_stop_lat'];
   $stop->stop_long = $form_state['values']['gtfs_manager_stop_long'];
-  $stop->wheelchair_boarding = 
+  $stop->wheelchair_boarding =
     $form_state['values']['gtfs_manager_wheelchair_boarding'];
   $stop->province_id = $form_state['values']['gtfs_manager_province_id'];
   $stop->time_zone_id = $form_state['values']['gtfs_manager_time_zone_id'];
@@ -280,17 +280,17 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   // stop time save
   $stop_time->tid = $trip->tid;
   $stop_time->sid = $stop->sid;
-  $stop_time->arrival_time = 
+  $stop_time->arrival_time =
     $form_state['values']['gtfs_manager_stop_arrival_time'];
-  $stop_time->departure_time = 
+  $stop_time->departure_time =
     $form_state['values']['gtfs_manager_stop_departure_time'];
 
   //maintain sequence by reordering the sequence with each addition
   $update_type = $is_new ? 'new' : 'edit';
 
   $stop_time->stop_sequence = update_route_sequence(
-    $trip->rid, 
-    $form_state['values']['gtfs_manager_stop_sequence'], 
+    $trip->rid,
+    $form_state['values']['gtfs_manager_stop_sequence'],
     $update_type,
     $stop->sid
   );
@@ -299,7 +299,7 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
 
   stop_time_save($stop_time);
 
-  drupal_set_message(t('Your stop has been submitted'));  
+  drupal_set_message(t('Your stop has been submitted'));
 
   $form_state['redirect'] = 'route/' . $trip->rid . '/stops';
 }
@@ -314,8 +314,8 @@ function gtfs_manager_stop_form_delete_submit($form, &$form_state) {
   $stop = $form['#stop'];
 
 
-  $form_state['redirect'] = array('stop/' . $stop->sid . '/delete', 
-    array('query' => $destination));  
+  $form_state['redirect'] = array('stop/' . $stop->sid . '/delete',
+    array('query' => $destination));
 }
 
 function stop_page_edit($stop) {
@@ -327,7 +327,7 @@ function stop_delete_confirm($form, &$form_state, $stop) {
   $form['#stop'] = $stop;
   $form['sid'] = array('#type' => 'value', '#value' => $stop->sid);
   return confirm_form($form,
-    t('Are you sure you want to delete the stop: %name?', 
+    t('Are you sure you want to delete the stop: %name?',
       array('%name' => $stop->stop_name)),
     'agency/' . $stop->sid,
     t('This action cannot be undone.'),
@@ -345,7 +345,7 @@ function stop_delete_confirm_submit($form, &$form_state) {
 
   watchdog('stop', 'Stop at @name deleted.', array('@name' => $stop->stop_name));
 
-  drupal_set_message(t('The stop at %name has been deleted.', 
+  drupal_set_message(t('The stop at %name has been deleted.',
     array('%name' => $stop->stop_name)
   ));
 
@@ -362,7 +362,7 @@ function gtfs_manager_route_stops_view($route) {
   $variables['route'] = $route;
   //populate stops
   $stops = stop_load_multiple(array(), array('rid', $route->rid, '='));
-  
+
   if (sizeof($stops > 0)) {
     $variables['stops'] = $stops;
     return theme('gtfs_manager_route_stops_view', $variables);
@@ -384,18 +384,7 @@ function fetch_provinces() {
   return $options;
 }
 
-function fetch_time_zones() {
-  $options = array();
 
-  $time_zones = entity_load('time_zone', FALSE);
-
-  if ($time_zones) {
-    foreach ($time_zones as $time_zone) {
-      $options[$time_zone->time_zone_id] = t($time_zone->name);
-    }
-  }
-  return $options;
-}
 
 function fetch_sequence_select($rid) {
   $options = array();
@@ -412,7 +401,7 @@ function fetch_sequence_select($rid) {
   order by st.stop_sequence
 SQL;
 
-  $results = db_query($query, array(':rid' => $rid));  
+  $results = db_query($query, array(':rid' => $rid));
 
   $options[0] = 'First';
 
@@ -457,12 +446,12 @@ SQL;
       and st.stop_sequence = :sq
 SQL;
 
-    $exists = 
+    $exists =
       db_query($query, array(':rid' => $rid, ':sq' => $new_record_sequence))
       ->fetchField();
-  
+
     if ($exists || ($sequence == 0)) {
-      
+
       $query = <<<SQL
         update stop_times
           set stop_sequence = stop_sequence + 1
@@ -496,9 +485,9 @@ SQL;
         and stop_sequence <  :cur
 SQL;
 
-      db_query($query, 
-        array(':rid' => $rid, 
-	      ':new' => $new_record_sequence, 
+      db_query($query,
+        array(':rid' => $rid,
+	      ':new' => $new_record_sequence,
 	      ':cur' => $current_position
 	)
       );
@@ -518,8 +507,8 @@ SQL;
         and stop_sequence > :cur
 SQL;
 
-      db_query($query, array(':rid' => $rid, 
-			     ':new' => $new_record_sequence, 
+      db_query($query, array(':rid' => $rid,
+			     ':new' => $new_record_sequence,
 			     ':cur' => $current_position
 			     )
 	       );
@@ -555,7 +544,7 @@ function gtfs_manager_route_stops_upload_form($form, &$form_state, $route) {
   );
 
   $form['submit'] = array(
-    '#type'  =>  'submit', 
+    '#type'  =>  'submit',
     '#value'  =>  'Submit'
   );
 
@@ -602,28 +591,28 @@ function gtfs_manager_route_stops_upload_form_submit($form, &$form_state) {
         }
         //load the data
       } else {
-        
+
         $days_of_week = array(
-          'monday', 
-          'tuesday', 
-          'wednesday', 
-          'thursday', 
-          'friday', 
-          'saturday', 
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
           'sunday',
         );
 
         for ($i = 0; $i < count($data); $i++) {
           if (in_array($cols[$i], $days_of_week)) {
             $form_state['values']['gtfs_manager_schedule_days'][$cols[$i]] = trim($data[$i]);
-          } else { 
+          } else {
             if ($cols[$i] == 'gtfs_manager_stop_desc') {
               $data[$i] = addslashes($data[$i]);
             }
             $form_state['values'][$cols[$i]] = trim($data[$i]);
           }
         }
- 
+
         $route = $form_state['route'];
         $form_state['values']['gtfs_manager_rid'] = $route->rid;
         $stop = entity_get_controller('stop')->create();
@@ -637,8 +626,8 @@ function gtfs_manager_route_stops_upload_form_submit($form, &$form_state) {
 }
 
 function gtfs_manager_stop_calendar_date_form($form, &$form_state, $service_id, $calendar_date, $rid) {
-  
-  
+
+
   //Set the id ot identify this as the stop edit form
   $form['#id'] = 'stop-calendar-date-form';
 
@@ -658,7 +647,7 @@ function gtfs_manager_stop_calendar_date_form($form, &$form_state, $service_id, 
     '#title' => t('Exception Date'),
     '#required' => TRUE,
   );
-  
+
   $form['gtfs_manager_exception_type'] = array(
     '#type' => 'select',
     '#title' => t('Exception Type'),
@@ -679,7 +668,7 @@ function gtfs_manager_stop_calendar_date_form($form, &$form_state, $service_id, 
     '#weight' => 5,
     '#submit' => array('gtfs_manager_stop_calendar_date_form_submit'),
   );
-  
+
   // display delete button in edit form
   if (!empty($service_id)) {
     $form['buttons']['delete'] = array(
@@ -707,20 +696,20 @@ function gtfs_manager_stop_calendar_date_form_submit($form, &$form_state) {
 
   $calendar_date = $form_state['calendar_date'];
 
-    
+
   // if it is a new record set created_by
   if (empty($stop->created_by)) {
     $calendar_date->created_by = $user->name;
   }
 
   $calendar_date->updated_by = $user->name;
-  
+
   $calendar_date->service_id = $form_state['service_id'];
-  
-  $calendar_date->exception_date 
+
+  $calendar_date->exception_date
     = strtotime($form_state['values']['gtfs_manager_calendar_date']);
-  
-  $calendar_date->exception_type 
+
+  $calendar_date->exception_type
     = $form_state['values']['gtfs_manager_exception_type'];
 
   calendar_date_save($calendar_date);
@@ -733,4 +722,86 @@ function gtfs_manager_stop_calendar_date_form_submit($form, &$form_state) {
 
 function gtfs_manager_stop_calendar_date_form_delete_submit($form, &$form_state) {
 
+}
+
+/**
+ * Form builder; create and display the form for a new stop service feature
+ */
+function gtfs_manager_stop_service_feature_form($form, &$form_state, $stop_service_feature, $route, $stop) {
+
+  //Set the id to identify this as the stop edit form
+  $form['#id'] = 'stop-service-feature-form';
+
+  // save the stop and service feature objects for later
+  $form['#stop'] = $stop;
+  $form_state['stop'] = $stop;
+  $form_state['stop_service_feature'] = $stop_service_feature;
+  $form_state['route'] = $route;
+
+  $form['create_link'] = array(
+    '#markup' => l('Create a new feature', 'service_feature/new')
+  );
+
+  //checkboxes for all features
+  $form['gtfs_manager_stop_service_feature_ids'] = array(
+    '#type' => 'checkboxes',
+    '#options' => fetch_service_features(),
+    '#title' => t('Select features provided by this stop'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Stop'),
+    '#weight' => 5,
+    '#submit' => array('gtfs_manager_stop_service_features_form_submit'),
+  );
+
+  $form['#validate'][] = 'gtfs_manager_stop_service_features_form_validate';
+
+  return $form;
+}
+
+function gtfs_manager_stop_service_features_form_validate($form, &$form_state) {
+
+}
+
+function gtfs_manager_stop_service_features_form_submit($form, &$form_state) {
+  global $user;
+
+  $stop_service_feature = $form_state['stop_service_feature'];
+  $route = $form_state['route'];
+
+  // if this is a new record
+  if (empty($stop_service_feature->created_by)) {
+    $stop_service_feature->created_by = $user->name;
+  }
+
+  $stop_service_feature->updated_by = $user->name;
+  $stop_service_feature->sid = $form_state['stop']->sid;
+
+
+  foreach ($form_state['values']['gtfs_manager_stop_service_feature_ids'] as $key => $value) {
+    //make a copy so we can loop through and save the different features
+    $copy = $stop_service_feature;
+
+    if ($value != 0) {
+      $copy->service_feature_id = $key;
+      //Save
+      stop_service_feature_save($copy);
+    }
+  }
+
+  drupal_set_message(t('Stop Service Feature(s) saved'));
+
+  $form_state['redirect'] = 'route/' . $route->rid  .'/stops/view';
+
+}
+
+/**
+ * Save a new or updated stop service feature
+ *
+ * @param $stop_service_feature a populated stop object
+ */
+function stop_service_feature_save($stop_service_feature) {
+  return entity_get_controller('stop_service_feature')->save($stop_service_feature);
 }

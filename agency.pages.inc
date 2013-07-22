@@ -3,7 +3,7 @@
  * Form builder; create and display the form for a new agency
  */
 function gtfs_manager_agency_form($form, &$form_state, $agency = null) {
-  
+
   //Set the id to identify this as the agency edit form
   $form['#id'] = 'agency-form';
 
@@ -48,6 +48,22 @@ function gtfs_manager_agency_form($form, &$form_state, $agency = null) {
     '#size' => 40,
   );
 
+  $form['gtfs_manager_agency_time_zone_id'] = array(
+    '#type' => 'select',
+    '#title' => t('Time zone'),
+    '#default_value' => $agency->time_zone_id,
+    '#options' => fetch_time_zones(),
+  );
+
+  //text field for agency fare url
+  $form['gtfs_manager_agency_fare_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Transporter fare url'),
+    '#default_value' => $agency->agency_fare_url,
+    '#description' => t('The url for this transporters fare information.  Will be displayed if fare information is not present.'),
+    '#size' => 40,
+  );
+
   //text area for agency information
   $form['gtfs_manager_agency_info'] = array(
     '#type' => 'textarea',
@@ -77,7 +93,7 @@ function gtfs_manager_agency_form($form, &$form_state, $agency = null) {
       '#submit' => array('gtfs_manager_agency_form_delete_submit'),
     );
   }
-    
+
   $form['#validate'][] = 'gtfs_manager_agency_form_validate';
 
   //allow other fields to be added to form
@@ -91,7 +107,7 @@ function gtfs_manager_agency_form($form, &$form_state, $agency = null) {
  */
 function gtfs_manager_agency_form_validate($form, &$form_state) {
   $agency = $form_state['agency'];
-  
+
   // Field Validation
   field_attach_form_validate('agency', $agency, $form, $form_state);
 }
@@ -115,7 +131,8 @@ function gtfs_manager_agency_form_submit($form, &$form_state) {
   $agency->agency_phone = $form_state['values']['gtfs_manager_agency_phone'];
   $agency->agency_email = $form_state['values']['gtfs_manager_agency_email'];
   $agency->agency_info = $form_state['values']['gtfs_manager_agency_info'];
-
+  $agency->agency_fare_url = $form_state['values']['gtfs_manager_agency_fare_url'];
+  $agency->time_zone_id = $form_state['values']['gtfs_manager_agency_time_zone_id'];
 
   //notify field widgets
   field_attach_submit('agency', $agency, $form, $form_state);
@@ -137,8 +154,8 @@ function gtfs_manager_agency_form_delete_submit($form, &$form_state) {
   }
 
   $agency = $form['#agency'];
-  $form_state['redirect'] = array('agency/' . $agency->aid . '/delete', 
-    array('query' => $destination));  
+  $form_state['redirect'] = array('agency/' . $agency->aid . '/delete',
+    array('query' => $destination));
 }
 
 function agency_page_view($agency, $view_mode = 'full') {
@@ -150,13 +167,13 @@ function agency_page_view($agency, $view_mode = 'full') {
       '#markup' => filter_xss($agency->agency_name),
       '#weight' => -5,
     );
-    
+
   }
 
   field_attach_prepare_view('agency', array($agency->aid => $agency), $view_mode);
   entity_prepare_view('agency', array($agency->aid => $agency));
   $agency->content += field_attach_view('agency', $agency, $view_mode);
-  
+
   return $agency->content;
 
 }
@@ -170,7 +187,7 @@ function agency_delete_confirm($form, &$form_state, $agency) {
   $form['#agency'] = $agency;
   $form['aid'] = array('#type' => 'value', '#value' => $agency->aid);
   return confirm_form($form,
-    t('Are you sure you want to delete the route: %name?', 
+    t('Are you sure you want to delete the route: %name?',
       array('%name' => $agency->agency_name)),
     'agency/' . $agency->aid,
     t('This action cannot be undone.'),
@@ -187,7 +204,7 @@ function agency_delete_confirm_submit($form, &$form_state) {
 
   watchdog('agency', '@name deleted.', array('@name' => $agency->agency_name));
 
-  drupal_set_message(t('The route %name has been deleted.', 
+  drupal_set_message(t('The route %name has been deleted.',
     array('%name' => $agency->agency_name)
   ));
 
@@ -209,13 +226,13 @@ function gtfs_manager_all_agencies_view() {
   if (!empty($agencies)) {
     foreach ($agencies as $agency) {
       $link = l($agency->agency_name, 'agency/' . $agency->aid)
-	. ' | ' 
+	. ' | '
 	. l('View routes', 'agency/' . $agency->aid . '/routes');
 
 	if (user_access('administer gtfs')) {
-	  $link .= ' | ' 
+	  $link .= ' | '
 	  . l('Add route', 'agency/' . $agency->aid . '/route/add')
-	  . ' | ' 
+	  . ' | '
 	  . l('Add Feature', 'agency/' . $agency->aid . '/feature/add');
 	}
       array_push($page['items'], $link);
@@ -228,7 +245,7 @@ function gtfs_manager_all_agencies_view() {
 function agency_routes_page_view($agency, $view_mode = 'full') {
 
   $routes = route_load_multiple(FALSE, array('aid' => $agency->aid));
-  
+
   $list['title'] = 'Showing routes for ' . $agency->agency_name;
   $list['items'] = array();
 
@@ -245,10 +262,10 @@ function gtfs_manager_agency_detail($agency) {
 }
 
 /**
- * Form builder; create and display the form for a new agency
+ * Form builder; create and display the form for a new agency service feature
  */
 function gtfs_manager_agency_feature_form($form, &$form_state, $agency_service_feature, $agency) {
-  
+
   //Set the id to identify this as the agency edit form
   $form['#id'] = 'agency-service-feature-form';
 
@@ -263,7 +280,7 @@ function gtfs_manager_agency_feature_form($form, &$form_state, $agency_service_f
 
   //checkboxes for all features
   $form['gtfs_manager_agency_service_feature_ids'] = array(
-    '#type' => 'checkboxes',							
+    '#type' => 'checkboxes',
     '#options' => fetch_service_features(),
     '#title' => t('Select features provided by this agency'),
     //'#default_value' => $agency->service_feature_ids
@@ -275,31 +292,55 @@ function gtfs_manager_agency_feature_form($form, &$form_state, $agency_service_f
     '#weight' => 5,
     '#submit' => array('gtfs_manager_agency_service_features_form_submit'),
   );
-    
+
   $form['#validate'][] = 'gtfs_manager_agency_service_features_form_validate';
 
   return $form;
 }
 
-function fetch_service_features() {
-  $result = db_select('service_features', 'sf')
-    ->fields('sf', array('service_feature_id', 'service_feature_name'))
-    ->execute();
 
-  $service_features = array();
-  
-  while ($service_feature = $result->fetchObject()) {
-    $service_features[$service_feature->service_feature_id] 
-      = $service_feature->service_feature_name;
-  }
-
-  return $service_features;
-}
 
 function gtfs_manager_agency_service_features_form_validate($form, &$form_state) {
 
 }
 
 function gtfs_manager_agency_service_features_form_submit($form, &$form_state) {
+  global $user;
 
+  $agency_service_feature = &$form_state['agency_service_feature'];
+
+  // if this is a new record
+  if (empty($agency_service_feature->created_by)) {
+    $agency_service_feature->created_by = $user->name;
+  }
+
+  $agency_service_feature->updated_by = $user->name;
+  $agency_service_feature->aid = $form_state['agency']->aid;
+
+
+  foreach ($form_state['values']['gtfs_manager_agency_service_feature_ids'] as $key => $value) {
+    //make a copy so we can loop through and save the different features
+    $copy = $agency_service_feature;
+
+    //if it is selected
+    if ($value != 0) {
+      $copy->service_feature_id = $key;
+      //Save
+      agency_service_feature_save($copy);
+    }
+  }
+
+  drupal_set_message(t('Agency Service Feature(s) saved'));
+
+  $form_state['redirect'] = 'agencies/';
+
+}
+
+/**
+ * Save a new or updated service feature
+ *
+ * @param $service_feature a populated agency object
+ */
+function agency_service_feature_save($agency_service_feature) {
+  return entity_get_controller('agency_service_feature')->save($agency_service_feature);
 }

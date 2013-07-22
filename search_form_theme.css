@@ -83,24 +83,24 @@ only screen and (max-width: 760px),
     white-space: nowrap;
   }
 	
+tr.collapsitable { 
+ display: none;
+ background: white;
+}
 
-  /*
-     Hide first and last cell
-  */
-  .search-result-cell:nth-of-type(1), td:nth-of-type(8) { 
-    display: none;
-  }
+tr.collapsitable td { 
+ background: white;
+}
+
+  /* Label the data  */
   
-  /*
-     Label the data
-     */
-  
-  .search-result-cell:nth-of-type(2):before { content: "Leaves"; }
-  .search-result-cell:nth-of-type(3):before { content: "Arrives"; }
-  .search-result-cell:nth-of-type(4):before { content: "Durartion"; }
+  .search-result-cell:nth-of-type(1):before { content: "Leaves"; }
+  .search-result-cell:nth-of-type(2):before { content: "Arrives"; }
+  .search-result-cell:nth-of-type(3):before { content: "Durartion"; }
+  .search-result-cell:nth-of-type(4):before { content: "Fare"; }
   .search-result-cell:nth-of-type(5):before { content: "Transfers"; }
-  /*.search-result-cell:nth-of-type(6):before { content: "Features"; }*/
-  .search-result-cell:nth-of-type(6):before { content: "Type"; }
-  .search-result-cell:nth-of-type(7):before { content: "Provider"; }
+  .search-result-cell:nth-of-type(6):before { content: "Features"; }
+  .search-result-cell:nth-of-type(7):before { content: "Type"; }
+  .search-result-cell:nth-of-type(8):before { content: "Provider"; }
   
 }

@@ -12,6 +12,8 @@ class AgencyController extends DrupalDefaultEntityController {
       'agency_phone' => '',
       'agency_email' => '',
       'agency_info' => '',
+      'agency_fare_url' => '',
+      'time_zone_id' => '',
       'created_at' => '',
       'updated_at' => '',
       'created_by' => '',

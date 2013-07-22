@@ -37,25 +37,14 @@ class StopServiceFeatureController extends DrupalDefaultEntityController {
 
       $stop_service_feature->updated_at = REQUEST_TIME;
 
-      // give other modules a chance to prepare field data
-      field_attach_presave('stop_service_feature', $stop_service_feature);
-
       // if this is a new stop_service_feature
       if ($stop_service_feature->is_new) {
 	// Save the stop_service_feature
 	drupal_write_record('stop_service_features', $stop_service_feature);
-	$op = 'insert';
       } else {
 	// update the stop_service_feature
 	drupal_write_record('stop_service_features', $stop_service_feature, 'stop_service_feature_id');
-	$op = 'update';
       }
-
-      // Save fields
-      $function = 'field_attach_' . $op;
-      $function('stop_service_feature', $stop_service_feature);
-
-      module_invoke_all('entity_' . $op, $stop_service_feature, 'stop_service_feature');
 
       // Clear internal properties
       unset($stop_service_feature->is_new);

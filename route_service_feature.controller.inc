@@ -43,18 +43,10 @@ class RouteServiceFeatureController extends DrupalDefaultEntityController {
       if ($route_service_feature->is_new) {
 	// Save the route_service_feature
 	drupal_write_record('route_service_features', $route_service_feature);
-	$op = 'insert';
       } else {
 	// update the route_service_feature
 	drupal_write_record('route_service_features', $route_service_feature, 'route_service_feature_id');
-	$op = 'update';
       }
-
-      // Save fields
-      $function = 'field_attach_' . $op;
-      $function('route_service_feature', $route_service_feature);
-
-      module_invoke_all('entity_' . $op, $route_service_feature, 'route_service_feature');
 
       // Clear internal properties
       unset($route_service_feature->is_new);
