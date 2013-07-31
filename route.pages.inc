@@ -263,7 +263,8 @@ function gtfs_manager_load_route_detail($route) {
 /**
  * Form builder; create and display the form for a new route service feature
  */
-function gtfs_manager_route_feature_form($form, &$form_state, $route_service_feature, $route) {
+function gtfs_manager_route_feature_form($form, &$form_state, $route_service_feature, $agency, $route) {
+  $route->service_feature_ids = fetch_features('route', $route->rid, TRUE);
 
   //Set the id to identify this as the route edit form
   $form['#id'] = 'route-service-feature-form';
@@ -271,6 +272,8 @@ function gtfs_manager_route_feature_form($form, &$form_state, $route_service_fea
   // save the route and service feature objects for later
   $form['#route'] = $route;
   $form_state['route'] = $route;
+  $form['#agency'] = $agency;
+  $form_state['agency'] = $agency;
   $form_state['route_service_feature'] = $route_service_feature;
 
   $form['create_link'] = array(
@@ -282,6 +285,7 @@ function gtfs_manager_route_feature_form($form, &$form_state, $route_service_fea
     '#type' => 'checkboxes',
     '#options' => fetch_service_features(),
     '#title' => t('Select features provided by this route'),
+    '#default_value' => $route->service_feature_ids,
   );
 
   $form['submit'] = array(
@@ -302,8 +306,9 @@ function gtfs_manager_route_service_features_form_validate($form, &$form_state) 
 
 function gtfs_manager_route_service_features_form_submit($form, &$form_state) {
   global $user;
-
+  $service_feature_ids = $form_state['route']->service_feature_ids;
   $route_service_feature = &$form_state['route_service_feature'];
+  $agency = $form_state['agency'];
 
   // if this is a new record
   if (empty($route_service_feature->created_by)) {
@@ -313,21 +318,30 @@ function gtfs_manager_route_service_features_form_submit($form, &$form_state) {
   $route_service_feature->updated_by = $user->name;
   $route_service_feature->rid = $form_state['route']->rid;
 
+  //make a copy so we can loop through and save the different features
+  $copy = $route_service_feature;
 
   foreach ($form_state['values']['gtfs_manager_route_service_feature_ids'] as $key => $value) {
-    //make a copy so we can loop through and save the different features
-    $copy = $route_service_feature;
-
     if ($value != 0) {
       $copy->service_feature_id = $key;
       //Save
       route_service_feature_save($copy);
+      unset($service_feature_ids[$key]);
     }
   }
 
-  drupal_set_message(t('Route Service Feature(s) saved'));
+  //delete unchecked features
+  if (sizeof($service_feature_ids) != 0) {
+      $query = 'select route_service_feature_id from route_service_features where rid = :rid and service_feature_id in (:sfids)';
+      $result = db_query($query, array(':rid' => $route_service_feature->rid, ':sfids' => implode(',', $service_feature_ids)));
+      while ($id = $result->fetchField()) {
+        route_service_feature_delete(array($id));
+      }
+  }
 
-  $form_state['redirect'] = 'agencies/';
+  drupal_set_message(t('Route Service Feature(s) updated'));
+
+  $form_state['redirect'] = 'agency/' . $agency->aid . '/routes';
 
 }
 
@@ -338,5 +352,21 @@ function gtfs_manager_route_service_features_form_submit($form, &$form_state) {
  */
 function route_service_feature_save($route_service_feature) {
   return entity_get_controller('route_service_feature')->save($route_service_feature);
+}
+
+/**
+ * deletes a route service featrue via controller
+ * @param  $route_service_feature the service feature being deleted
+ *
+ */
+function route_service_feature_delete($route_service_feature_id) {
+  return entity_get_controller('route_service_feature')->delete($route_service_feature_id);
+}
+
+/*
+ * returns features for a given route id
+ */
+function fetch_route_features($rid) {
+  return fetch_features('route', $rid);
 }
 

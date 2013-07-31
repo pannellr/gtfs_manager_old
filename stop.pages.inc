@@ -79,11 +79,11 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
   );
 
   //checkbox for wheelchair access
-  $form['gtfs_manager_wheelchair_boarding'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Has wheelchair access'),
-    '#default_value' => $stop->wheelchair_boarding,
-  );
+  //$form['gtfs_manager_wheelchair_boarding'] = array(
+  //  '#type' => 'checkbox',
+  //  '#title' => t('Has wheelchair access'),
+  //  '#default_value' => $stop->wheelchair_boarding,
+  //);
 
   //timepicker for stop arrival time
   $form['gtfs_manager_stop_arrival_time'] = array(
@@ -267,8 +267,8 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   $stop->stop_desc = trim($form_state['values']['gtfs_manager_stop_desc']);
   $stop->stop_lat = $form_state['values']['gtfs_manager_stop_lat'];
   $stop->stop_long = $form_state['values']['gtfs_manager_stop_long'];
-  $stop->wheelchair_boarding =
-    $form_state['values']['gtfs_manager_wheelchair_boarding'];
+  //$stop->wheelchair_boarding =
+  //  $form_state['values']['gtfs_manager_wheelchair_boarding'];
   $stop->province_id = $form_state['values']['gtfs_manager_province_id'];
   $stop->time_zone_id = $form_state['values']['gtfs_manager_time_zone_id'];
 
@@ -353,10 +353,10 @@ function stop_delete_confirm_submit($form, &$form_state) {
 }
 
 
-function gtfs_manager_load_stop_detail($stop) {
-  $variables['stop'] = $stop;
-  return theme('gtfs_manager_stop_detail', $variables);
-}
+//function gtfs_manager_load_stop_detail($stop) {
+//  $variables['stop'] = $stop;
+//  return theme('gtfs_manager_stop_detail', $variables);
+//}
 
 function gtfs_manager_route_stops_view($route) {
   $variables['route'] = $route;
@@ -732,6 +732,9 @@ function gtfs_manager_stop_service_feature_form($form, &$form_state, $stop_servi
   //Set the id to identify this as the stop edit form
   $form['#id'] = 'stop-service-feature-form';
 
+  //fetch active service features
+  $stop->service_feature_ids = fetch_features('stop', $stop->sid, TRUE);
+
   // save the stop and service feature objects for later
   $form['#stop'] = $stop;
   $form_state['stop'] = $stop;
@@ -747,6 +750,7 @@ function gtfs_manager_stop_service_feature_form($form, &$form_state, $stop_servi
     '#type' => 'checkboxes',
     '#options' => fetch_service_features(),
     '#title' => t('Select features provided by this stop'),
+    '#default_value' => $stop->service_feature_ids,
   );
 
   $form['submit'] = array(
@@ -768,6 +772,7 @@ function gtfs_manager_stop_service_features_form_validate($form, &$form_state) {
 function gtfs_manager_stop_service_features_form_submit($form, &$form_state) {
   global $user;
 
+  $service_feature_ids = $form_state['stop']->service_feature_ids;
   $stop_service_feature = $form_state['stop_service_feature'];
   $route = $form_state['route'];
 
@@ -788,7 +793,17 @@ function gtfs_manager_stop_service_features_form_submit($form, &$form_state) {
       $copy->service_feature_id = $key;
       //Save
       stop_service_feature_save($copy);
+      unset($service_feature_ids[$key]);
     }
+  }
+
+  //delete unchecked features
+  if (sizeof($service_feature_ids) != 0) {
+      $query = 'select stop_service_feature_id from stop_service_features where sid = :sid and service_feature_id in (:sfids)';
+      $result = db_query($query, array(':sid' => $stop_service_feature->sid, ':sfids' => implode(',', $service_feature_ids)));
+      while ($id = $result->fetchField()) {
+        stop_service_feature_delete(array($id));
+      }
   }
 
   drupal_set_message(t('Stop Service Feature(s) saved'));
@@ -804,4 +819,13 @@ function gtfs_manager_stop_service_features_form_submit($form, &$form_state) {
  */
 function stop_service_feature_save($stop_service_feature) {
   return entity_get_controller('stop_service_feature')->save($stop_service_feature);
+}
+
+/**
+ * deletes a stop service feature via controller
+ * @param  $route_service_feature the service feature being deleted
+ *
+ */
+function stop_service_feature_delete($stop_service_feature_id) {
+  return entity_get_controller('stop_service_feature')->delete($stop_service_feature_id);
 }

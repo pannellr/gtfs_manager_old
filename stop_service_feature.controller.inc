@@ -5,7 +5,7 @@ class StopServiceFeatureController extends DrupalDefaultEntityController {
   /**
    * create empty stop_service_feature object
    *
-   * @param $stop_service_feature_id the stop_service_feature id, 
+   * @param $stop_service_feature_id the stop_service_feature id,
    * may be used if on update
    *
    * @return the empty Stop_Service_Feature object
@@ -26,7 +26,7 @@ class StopServiceFeatureController extends DrupalDefaultEntityController {
 
     try {
       global $user;
-      
+
       //determine if stop_service_feature is new
       $stop_service_feature->is_new = empty($stop_service_feature->stop_service_feature_id);
 
@@ -63,27 +63,20 @@ class StopServiceFeatureController extends DrupalDefaultEntityController {
 
   public function delete($stop_service_feature_ids) {
     if (!empty($stop_service_feature_ids)) {
-      $stop_service_features = $this->load($stop_service_feature_ids, array());
       $transaction = db_transaction();
 
       try {
-	db_delete('stop_service_features')
-	  ->condition('stop_service_feature_id', $stop_service_feature_ids, 'IN')
-	  ->execute();
+        	db_delete('stop_service_features')
+	          ->condition('stop_service_feature_id', $stop_service_feature_ids, 'IN')
+	          ->execute();
 
-	foreach ($stop_service_features as $stop_service_feature_id => $stop_service_feature) {
-	  field_attach_delete('stop_service_feature', $stop_service_feature);
-	}
-
-	db_ignore_slave();
+	        db_ignore_slave();
 
       } catch (Exception $e) {
-	$transaction->rollback();
-	watchdog_exception('stop_service_feature', $e, NULL, WATCHDOG_ERROR);
-	return FALSE;
+	    $transaction->rollback();
+	    watchdog_exception('stop_service_feature', $e, NULL, WATCHDOG_ERROR);
+	    return FALSE;
       }
-
-      module_invoke_all('entity_delete', $stop_service_feature, 'stop_service_feature');
 
       //Clear the page, block, and stop_service_feature caches
       cache_clear_all();

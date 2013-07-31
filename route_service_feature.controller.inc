@@ -25,7 +25,7 @@ class RouteServiceFeatureController extends DrupalDefaultEntityController {
 
     try {
       global $user;
-      
+
       //determine if route_service_feature is new
       $route_service_feature->is_new = empty($route_service_feature->route_service_feature_id);
 
@@ -65,29 +65,22 @@ class RouteServiceFeatureController extends DrupalDefaultEntityController {
 
   public function delete($route_service_feature_ids) {
     if (!empty($route_service_feature_ids)) {
-      $route_service_features = $this->load($route_service_feature_ids, array());
       $transaction = db_transaction();
 
       try {
-	db_delete('route_service_features')
-	  ->condition('route_service_feature_id', $route_service_feature_ids, 'IN')
-	  ->execute();
+	    db_delete('route_service_features')
+	      ->condition('route_service_feature_id', $route_service_feature_ids, 'IN')
+	      ->execute();
 
-	foreach ($route_service_features as $route_service_feature_id => $route_service_feature) {
-	  field_attach_delete('route_service_feature', $route_service_feature);
-	}
-
-	db_ignore_slave();
+	    db_ignore_slave();
 
       } catch (Exception $e) {
-	$transaction->rollback();
-	watchdog_exception('route_service_feature', $e, NULL, WATCHDOG_ERROR);
-	return FALSE;
+    	$transaction->rollback();
+    	watchdog_exception('route_service_feature', $e, NULL, WATCHDOG_ERROR);
+    	return FALSE;
       }
 
-      module_invoke_all('entity_delete', $route_service_feature, 'route_service_feature');
-
-      //Clear the page, block, and route_service_feature caches
+      //Clear the page, block, and agency_service_feature caches
       cache_clear_all();
       $this->resetCache();
     }

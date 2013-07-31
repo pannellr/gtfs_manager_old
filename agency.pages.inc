@@ -126,7 +126,7 @@ function gtfs_manager_agency_form_submit($form, &$form_state) {
   }
 
   $agency->updated_by = $user->name;
-  $agency->agency_name = $form_state['values']['gtfs_manager_agency_name'];
+  $agency->agency_name = addslashes($form_state['values']['gtfs_manager_agency_name']);
   $agency->agency_url = $form_state['values']['gtfs_manager_agency_url'];
   $agency->agency_phone = $form_state['values']['gtfs_manager_agency_phone'];
   $agency->agency_email = $form_state['values']['gtfs_manager_agency_email'];
@@ -215,45 +215,49 @@ function agency_delete_confirm_submit($form, &$form_state) {
  * List all agencies in database
  */
 function gtfs_manager_all_agencies_view() {
-  //select all agencies from database
+  $variables = array();
 
   $agencies = entity_load('agency', FALSE);
-
   $page['title'] = t('Showing all agencies');
-  $page['items'] = array();
 
+  foreach ($agencies as $agency) {
+    $agency->features = fetch_agency_features($agency->aid);
 
-  if (!empty($agencies)) {
-    foreach ($agencies as $agency) {
-      $link = l($agency->agency_name, 'agency/' . $agency->aid)
-	. ' | '
-	. l('View routes', 'agency/' . $agency->aid . '/routes');
+    $links[] = l('Edit' , 'agency/' . $agency->aid);
+	$links[] = l('Routes', 'agency/' . $agency->aid . '/routes');
 
 	if (user_access('administer gtfs')) {
-	  $link .= ' | '
-	  . l('Add route', 'agency/' . $agency->aid . '/route/add')
-	  . ' | '
-	  . l('Add Feature', 'agency/' . $agency->aid . '/feature/add');
+	  $links[] = l('Features', 'agency/' . $agency->aid . '/feature/add');
+	  $links[] = l('Fares', '#');
 	}
-      array_push($page['items'], $link);
-    }
+
+	$agency->options = $links;
   }
 
-  return theme('item_list', $page);
+  $variables['agencies'] = !empty($agencies) ? $agencies : '';
+
+  return theme('gtfs_manager_agencies', $variables);
+
 }
 
 function agency_routes_page_view($agency, $view_mode = 'full') {
+  $variables = array();
 
   $routes = route_load_multiple(FALSE, array('aid' => $agency->aid));
 
-  $list['title'] = 'Showing routes for ' . $agency->agency_name;
-  $list['items'] = array();
+  $variables['links'][] = l(t('Create Route'), 'agency/' . $agency->aid . '/route/add');
 
   foreach ($routes as $route) {
-    $link = l($route->route_long_name, 'route/' . $route->rid);
-    array_push($list['items'], $link);
+    $route->links[] = l(t('Edit'), 'route/' . $route->rid . '/edit');
+    $route->links[] = l(t('Stops'), 'route/' . $route->rid . '/stops');
+    $route->links[] = l(t('Features'), 'agency/' . $agency->aid .'/route/' . $route->rid . '/feature/add');
+    $route->links[] = l(t('Fares'), 'route/' . $route->rid . '/fares/add');
+    $route->links[] = l(t('Upload Stops'), 'route/' . $route->rid . '/upload');
   }
-  return theme('item_list', $list);
+
+  $variables['routes'] = $routes;
+
+  return theme('gtfs_manager_agency_routes', $variables);
 }
 
 function gtfs_manager_agency_detail($agency) {
@@ -265,6 +269,7 @@ function gtfs_manager_agency_detail($agency) {
  * Form builder; create and display the form for a new agency service feature
  */
 function gtfs_manager_agency_feature_form($form, &$form_state, $agency_service_feature, $agency) {
+  $agency->service_feature_ids = fetch_features('agency', $agency->aid, TRUE);
 
   //Set the id to identify this as the agency edit form
   $form['#id'] = 'agency-service-feature-form';
@@ -283,12 +288,12 @@ function gtfs_manager_agency_feature_form($form, &$form_state, $agency_service_f
     '#type' => 'checkboxes',
     '#options' => fetch_service_features(),
     '#title' => t('Select features provided by this agency'),
-    //'#default_value' => $agency->service_feature_ids
+    '#default_value' => $agency->service_feature_ids
   );
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save Agency'),
+    '#value' => t('Update Service Features'),
     '#weight' => 5,
     '#submit' => array('gtfs_manager_agency_service_features_form_submit'),
   );
@@ -307,7 +312,9 @@ function gtfs_manager_agency_service_features_form_validate($form, &$form_state)
 function gtfs_manager_agency_service_features_form_submit($form, &$form_state) {
   global $user;
 
-  $agency_service_feature = &$form_state['agency_service_feature'];
+  $service_feature_ids = $form_state['agency']->service_feature_ids;
+
+  $agency_service_feature = $form_state['agency_service_feature'];
 
   // if this is a new record
   if (empty($agency_service_feature->created_by)) {
@@ -317,20 +324,31 @@ function gtfs_manager_agency_service_features_form_submit($form, &$form_state) {
   $agency_service_feature->updated_by = $user->name;
   $agency_service_feature->aid = $form_state['agency']->aid;
 
+  //make a copy so we can loop through and save the different features
+  $copy = $agency_service_feature;
+
 
   foreach ($form_state['values']['gtfs_manager_agency_service_feature_ids'] as $key => $value) {
-    //make a copy so we can loop through and save the different features
-    $copy = $agency_service_feature;
 
     //if it is selected
     if ($value != 0) {
       $copy->service_feature_id = $key;
       //Save
       agency_service_feature_save($copy);
+      // remove selected keys and delete leftovers later
+      unset($service_feature_ids[$key]);
     }
   }
 
-  drupal_set_message(t('Agency Service Feature(s) saved'));
+  if (sizeof($service_feature_ids) != 0) {
+      $query = 'select agency_service_feature_id from agency_service_features where aid = :aid and service_feature_id in (:sfids)';
+      $result = db_query($query, array(':aid' => $agency_service_feature->aid, ':sfids' => implode(',', $service_feature_ids)));
+      while ($id = $result->fetchField()) {
+        agency_service_feature_delete(array($id));
+      }
+  }
+
+  drupal_set_message(t('Agency Service Feature(s) updated'));
 
   $form_state['redirect'] = 'agencies/';
 
@@ -344,3 +362,17 @@ function gtfs_manager_agency_service_features_form_submit($form, &$form_state) {
 function agency_service_feature_save($agency_service_feature) {
   return entity_get_controller('agency_service_feature')->save($agency_service_feature);
 }
+
+/**
+ * Save a new or updated service feature
+ *
+ * @param $service_feature a populated agency object
+ */
+function agency_service_feature_delete($agency_service_feature_id) {
+  return entity_get_controller('agency_service_feature')->delete($agency_service_feature_id);
+}
+
+function fetch_agency_features($aid) {
+  return fetch_features('agency', $aid);
+}
+

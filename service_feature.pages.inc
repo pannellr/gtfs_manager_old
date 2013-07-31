@@ -7,6 +7,15 @@ function gtfs_manager_service_feature_form($form, &$form_state, $service_feature
   //Set the id to identify this as the agency edit form
   $form['#id'] = 'service-feature-form';
 
+
+  //load all of the existing service features
+  $variables['service_features'] = entity_load('service_feature');
+
+  //theme service features and add them to the form as markup
+  $form['existing_service_features'] = array(
+    '#markup' => theme('gtfs_manager_all_features', $variables),
+  );
+
   // save the service_feature for later in case we need it
   $form['#service_feature'] = $service_feature;
   $form_state['service_feature'] = $service_feature;

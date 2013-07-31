@@ -3,7 +3,6 @@
   min-width: 200px;
  }
 
-
 .form-item-gtfs-manager-search-origin{
   float: left;
 }
@@ -39,8 +38,13 @@ tr:nth-of-type(odd) {
   background: #eee;
  }
 
+.feature-icon {
+	width: 25px;
+	height: 25px;
+}
 
-/* Chris Coiyer Solution */
+
+/* Chris Coiyer Responsive table Solution */
 
 @media 
 only screen and (max-width: 760px),

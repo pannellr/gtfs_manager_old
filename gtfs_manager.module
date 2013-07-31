@@ -317,7 +317,7 @@ function gtfs_manager_menu() {
 
   // Add agency link
   $items['agency/add'] = array(
-    'title' => 'Add a new transporter',
+    'title' => t('Add a new transporter'),
     'title callback' => 'check_plain',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('gtfs_manager_agency_form',
@@ -341,7 +341,7 @@ function gtfs_manager_menu() {
 
   // edit agency
   $items['agency/%agency/edit'] = array(
-    'title' => 'Edit transporter',
+    'title' => t('Edit transporter'),
     'page callback' => 'agency_page_edit',
     'page arguments' => array(1),
     'access arguments' => array('administer gtfs'),
@@ -353,7 +353,7 @@ function gtfs_manager_menu() {
 
   // delete an agency
   $items['agency/%agency/delete'] = array(
-    'title' => 'Delete',
+    'title' => t('Delete'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('agency_delete_confirm', 1),
     'access arguments' => array('administer gtfs'),
@@ -365,7 +365,7 @@ function gtfs_manager_menu() {
 
   //Show all agencies
   $items['agencies'] = array(
-    'title' => 'Directory',
+    'title' => t('Agency Directory'),
     'page callback' => 'gtfs_manager_all_agencies_view',
     'access callback' => TRUE,
     'file' => 'agency.pages.inc',
@@ -474,11 +474,11 @@ function gtfs_manager_menu() {
   );
 
   //Add a feature for a given route
-  $items['route/%route/feature/add'] = array(
+  $items['agency/%agency/route/%route/feature/add'] = array(
     'title callback' => t('Add features to this route'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('gtfs_manager_route_feature_form',
-      entity_get_controller('route_service_feature')->create(), 1),
+      entity_get_controller('route_service_feature')->create(), 1, 3),
     'weight' => 1,
     'menu_name' => 'gtfs_manager',
     'access arguments' => array('administer gtfs'),
@@ -767,25 +767,34 @@ function gtfs_manager_theme() {
       'template' => 'gtfs-manager-route-detail',
     ),
     'gtfs_manager_trip_detail' => array(
-      'template'  => 'gtfs-manager-trip-detail'
+      'template'  => 'gtfs-manager-trip-detail',
     ),
     'gtfs_manager_route_stops_view' => array(
-      'template'  => 'gtfs-manager-route-stops-view'
+      'template'  => 'gtfs-manager-route-stops-view',
     ),
     'display_search_results' => array(
-      'template' => 'gtfs-manager-search-results'
+      'template' => 'gtfs-manager-search-results',
     ),
     'gtfs_manager_zombie_report' => array(
-      'template' => 'gtfs-manager-zombie-report'
+      'template' => 'gtfs-manager-zombie-report',
     ),
     'gtfs_manager_show_fares' => array(
-      'template' => 'gtfs-manager-show-fares'
+      'template' => 'gtfs-manager-show-fares',
     ),
     'route_fare_form' => array(
       'render element' => 'form',
     ),
     'transfer_report' => array(
-      'template' => 'gtfs-manager-transfer-report'
+      'template' => 'gtfs-manager-transfer-report',
+    ),
+    'gtfs_manager_agencies' => array(
+      'template' => 'gtfs-manager-all-agencies-view',
+    ),
+    'gtfs_manager_agency_routes' => array(
+       'template' => 'gtfs-manager-agency-routes-view',
+    ),
+    'gtfs_manager_all_features' => array(
+      'template' => 'gtfs-manager-all-features',
     ),
   );
 
@@ -878,10 +887,15 @@ function template_preprocess_display_search_results(&$variables) {
     $variables['date'] = date('F d,Y', $variables['results'][0]->date);
 
     foreach ($variables['results'] as $result) {
-      $departure = new DateTime($result->departure_departure_time);
-      $arrival = new DateTime($result->destination_arrival_time);
-      $interval = $arrival->diff($departure);
-      $result->duration = $interval->format('%hh %im');
+      $departure = '';
+      $arrival = '';
+
+      if ($result->search_type != 'one_service_area') {
+        $departure = new DateTime($result->departure_departure_time);
+        $arrival = new DateTime($result->destination_arrival_time);
+        $interval = $arrival->diff($departure);
+        $result->duration = $interval->format('%hh %im');
+      }
 
       if ($result->search_type == 'one_transfer') {
 	    $layover_arrival = new DateTime($result->departure_transfer_departure_time);
@@ -1126,6 +1140,28 @@ function template_preprocess_display_search_results(&$variables) {
   }
 }
 
+/*
+ * Implement template_preprocess_hook()
+ *
+ * preprocesses view data for and agency's routes
+ */
+function template_preprocess_gtfs_manager_agency_routes(&$variables) {
+  //add features to each row
+  foreach ($variables['routes'] as $route) {
+    $route->features = fetch_features('route', $route->rid);
+  }
+}
+
+function template_preprocess_gtfs_manager_all_features(&$variables) {
+  foreach ($variables['service_features'] as $service_feature) {
+    $image_variables = array(
+      'path' => $service_feature->feature_icon_url,
+      'height' => '25px',
+      'width' => '25px',
+    );
+    $service_feature->markup = theme('image', $image_variables);
+  }
+}
 
 /**
  * Implements template_preprocess_hook()
@@ -1196,29 +1232,14 @@ function template_preprocess_gtfs_manager_route_stops_view(&$variables) {
     $stop->links = '';
 
     if (user_access('administer gtfs')) {
-      $stop->links .= l('Edit', 'stop/' . $stop->sid . '/edit');
-      $stop->links .= ' | ' .  l('Exception', 'route/'
-                      . $stop->rid
-                      . '/stop/'
-                      . $stop->service_id
-                      . '/calendar_date/add'
-      );
-
-      $stop->links .= ' | ' .  l('Add feature', 'route/'
-                      . $stop->rid
-                      . '/stop/'
-                      . $stop->sid
-                      . '/feature/add'
-      );
+      $stop->links[] = l('Edit', 'stop/' . $stop->sid . '/edit');
+      $stop->links[] = l('Exception', 'route/' . $stop->rid . '/stop/' . $stop->service_id . '/calendar_date/add');
+      $stop->links[] = l('Features', 'route/' . $stop->rid . '/stop/' . $stop->sid . '/feature/add');
     }
 
-    $stop->map_link = l('View stop on a map',
-      'https://maps.google.com/?q='
-      . $stop->stop_lat
-      . ','
-      . $stop->stop_long,
-      array('attributes' => array('target' => '_blank'))
-      );
+    $stop->links[] = l('View on Map', 'https://maps.google.com/?q=' . $stop->stop_lat . ',' . $stop->stop_long, array('attributes' => array('target' => '_blank')));
+
+    $stop->features = fetch_features('stop', $stop->sid);
 
     $calendar = db_select('calendar', 'c')
       ->fields('c', array('monday', 'tuesday', 'wednesday', 'thursday', 'friday',
@@ -1421,7 +1442,7 @@ function agency_delete_multiple($aids) {
  * @return the formatted page title
  */
 function agency_page_title($agency) {
-  return t('Showing transporter @name', array('@name' => $agency->agency_name));
+  return t('Showing transporter @name', array('@name' => stripslashes($agency->agency_name)));
 }
 
 /**
@@ -2313,7 +2334,6 @@ function gtfs_manager_search_form_validate($form, &$form_state) {
   if (empty($form_state['values']['gtfs_manager_search_date'][0])) {
     form_set_error('gtfs_manager_search_date', t('Please choose a search date.'));
   } else {
-    watchdog('search date', serialize($form_state['values']['gtfs_manager_search_date'][0]));
     $travel_date = new DateTime($form_state['values']['gtfs_manager_search_date']);
   }
 
@@ -2359,6 +2379,8 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
   $destination_province_code = preg_replace('/[()]/','', array_pop($destination_strings));
   $destination_stop_name = implode(' ', $destination_strings);
 
+  $origin_centroid = fetch_centroid_for($origin_stop_name, $origin_province_code);
+  $destination_centroid = fetch_centroid_for($destination_stop_name, $destination_province_code);
 
   $args = array(
     ':o' => $origin_stop_name,
@@ -2374,7 +2396,21 @@ function gtfs_manager_search_form_submit($form, &$form_state) {
   //run the different searches
   fetch_point_to_point_results($form, $form_state, $results, $args);
   fetch_one_transfer_results($form, $form_state, $results, $args);
-  fetch_one_service_area_results($form, $form_state, $results, $args);
+
+  if (!empty($origin_centroid) && !empty($destination_centroid)) {
+    //search for a result within a single service area
+    fetch_one_service_area_results($form, $form_state, $results, $args, $origin_centroid, $destination_centroid);
+    //search for a result within service areas that overlap
+    //fetch_service_area_to_service_area_results($form, $form_state, $results, $args, $origin_centroid, $destination_centroid);
+    //search for a result for service area to point to point to service area transfer x 2
+    //fetch_service_area_to_point_to_point_to_service_area_results($form, $form_state, $results, $args, $origin_centroid, $destination_centroid);
+  } elseif (!empty($origin_centroid)) {
+    // search for a result starting in a service area type route and ending in a point to point
+    fetch_service_area_to_point_to_point_results($form, $form_state, $results, $args, $origin_centroid);
+  } elseif (!empty($destination_centroid)) {
+    // search for a result starting in a point to point type route and ending in a service area
+    //fetch_service_area_to_point_to_point_results($form, $form_state, $results, $args, NULL, $destination_centroid);
+  }
 
   //run the same searches for the return trip
   if ($form_state['values']['gtfs_manager_trip_type_radio'] == 0
@@ -2544,8 +2580,6 @@ SQL;
 
 function fetch_one_transfer_results($form, &$form_state, &$results, $args) {
 
-  watchdog('args', serialize($args));
-
   $query =<<<SQL
 select origin.*
   ,  destination.*
@@ -2671,54 +2705,44 @@ and dayname(:date) in (if(c.monday = 1, 'monday', ''), if(c.tuesday = 1, 'tuesda
 ) destination
 on transfer_points.to_rid = destination.rid
   and destination.stop_sequence > transfer_points.to_stop_sequence
-
 left join fare_rules fr
   on fr.origin_id = origin.departure_zone_id
   and fr.destination_id = transfer_points.from_zone_id
 left join fare_attributes fa
   on fa.fare_id = fr.fare_id
-
 left join fare_rules fr2
   on fr2.origin_id = transfer_points.to_zone_id
   and fr2.destination_id = destination.destination_zone_id
 left join fare_attributes fa2
   on fa2.fare_id = fr2.fare_id
-
 left join route_service_features rsf
   on rsf.rid = destination.rid
 left join service_features sf
   on sf.service_feature_id = rsf.service_feature_id
-
 left join agency_service_features asf
   on asf.aid = destination.destination_aid
 left join service_features sf2
   on sf2.service_feature_id = asf.service_feature_id
-
 left join stop_service_features ssf
   on ssf.sid = destination.destination_sid
 left join service_features sf3
   on sf3.service_feature_id = ssf.service_feature_id
-
 left join stop_service_features ssf2
   on ssf2.sid = transfer_points.to_transfer_point_sid
 left join service_features sf4
   on sf4.service_feature_id = ssf2.service_feature_id
-
 left join route_service_features rsf2
   on rsf2.rid = origin.rid
 left join service_features sf5
   on sf5.service_feature_id = rsf2.service_feature_id
-
 left join agency_service_features asf2
   on asf2.aid = origin.origin_aid
 left join service_features sf6
   on sf6.service_feature_id = asf2.service_feature_id
-
 left join stop_service_features ssf3
   on ssf3.sid = origin.departure_sid
 left join service_features sf7
   on sf7.service_feature_id = ssf.service_feature_id
-
 left join stop_service_features ssf4
   on ssf4.sid = transfer_points.from_transfer_point_sid
 left join service_features sf8
@@ -2732,24 +2756,134 @@ SQL;
     $match->search_type = 'one_transfer';
     $match->num_transfers = 1;
 
-    watchdog('result', serialize($match));
-
     $results[] = $match;
   }
 
   return $results;
 }
 
-// within service area query
-function fetch_one_service_area_results($form, &$form_state, &$results, $args) {
-  //brute force draft 1
+/*
+ * finds origin destination results within a single service area
+ */
+function fetch_one_service_area_results($form, &$form_state, &$results, $args, $origin, $destination) {
+  geophp_load();
 
-
-  //grab all of the
+  //grab all of the polygons in the db
+  //need to add arguemnt to make sure the route is available on that date
   $polygons = get_polygons();
+
+  if (!empty($polygons)) {
+
+    $origin_point = geoPHP::LOAD('POINT(' . $origin->city_lat . ' ' . $origin->city_long . ')');
+    $destination_point = geoPHP::LOAD('POINT(' . $destination->city_lat . ' ' . $destination->city_long . ')');
+
+    foreach ($polygons as $service_area_id => $polygon) {
+      if ($polygon->contains($origin_point) && $polygon->contains($destination_point)) {
+        //add information to results
+        $result = fetch_result_info_for($service_area_id);
+
+        //add other attributes
+        $result->departure_city = $args[':o'];
+        $result->destination_city = $args[':d'];
+        $result->date = strtotime($form_state['values']['gtfs_manager_search_date']);
+        $result->departure_departure_time = 'Customer Choice';
+        $result->destination_arrival_time = '-';
+        $result->duration = '-';
+        $result->departure_description = '';
+        $result->destination_description = '';
+
+        $result->search_type = 'one_service_area';
+        $result->transfer = 0;
+        $results[] = $result;
+      }
+    }
+  }
+}
+
+/*
+ * Finds routes which join a service area to a point to point provider
+ */
+function fetch_service_area_to_point_to_point_results($form, $form_state, $results, $args, $origin_centroid = NULL, $destination_centroid = NULL) {
+  geophp_load();
+
+  //default to query that begins in service area
+  $operator = '>';
+  $stop_name = $args[':o'];
+  $centroid = $orign_centroid;
+  $search_type = 'service_area_to_point_to_point';
+
+
+  //switch the operator and stop name
+  if (is_null($origin_centroid)) {
+    $operator = '<';
+    $stop_name = $args[':d'];
+    $centroid = $destination_centroid;
+    $search_type = 'point_to_point_to_service_area';
+  }
+
+  //find routes with either a match on origin stop name or destination stop name and province
+  $query =<<<SQL
+select s.stop_name
+  , s.stop_lat
+  , s.stop_long
+  , t.rid
+  , st.stop_sequence
+from stops s
+join stop_times st
+  on st.sid = s.sid
+join trips t
+  on t.tid = st.tid
+join
+(select t.rid
+  ,  st.stop_sequence
+from stops s
+join stop_times st
+  on st.sid = s.sid
+join trips t
+  on t.tid = st.tid
+where s.stop_name = :s) a
+  on a.rid = t.rid
+  and a.stop_sequence :c st.stop_sequence; #switch comparator for point to point to service area
+SQL;
+
+  $result = db_query($query, array(':c' => $operator, ':s' => $stop_name));
+  //search through route stops to see if they are contained in a service area polygon
+
+  $polygons = get_polygons();
+
+  if (!empty($polygons)) {
+    //create the centroid point object
+    $centroid_point = geoPHP::LOAD('POINT(' . $centroid->city_lat . ' ' . $origin->city_long . ')');
+    watchdog('centroid point', serialize($centroid_point));
+    while ($stop = $result->fetchObject()) {
+      //create the stop point object
+      $stop_point = geoPHP::LOAD('POINT(' . $stop->stop_lat . ' ' . $origin->stop_long . ')');
+      watchdog('stop point', serialize($stop_point));
+      foreach($polygons as $service_area_id => $polygon) {
+        if ($polygon->contains($centroid_point)) {
+          if ($polygon->contains($stop_point)) {
+            $result = fetch_result_info_for($service_area_id);
+            watchdog('service are info', serialize($result));
+
+            $result->departure_departure_time = 'Customer Choice';
+            $result->destination_arrival_time = '-';
+            $result->duration = '-';
+            $result->departure_description = '';
+            $result->destination_description = '';
+
+            $result->search_type = $search_type;
+            $result->transfer = 1;
+            $results[] = $result;
+          }
+        }
+      }
+    }
+  }
 }
 
 function get_polygons(){
+  geophp_load();
+
   $polygons = array();
 
   $query =<<<SQL
@@ -2768,15 +2902,21 @@ SQL;
 
 $result = db_query($query);
 
+  //create an aray of lat long strings
   while ($polygon_point = $result->fetchObject()){
-    //$polygons[$polygon_point->service_area_id] =
-    //array_push($results, $match);
+    $polygon_coords[$polygon_point->service_area_id][] = $polygon_point->shape_point_lat . ' ' . $polygon_point->shape_point_long;
   }
 
-
+  // join array of for each service area, create polygon ogject and add it to polygons array indexed by service area id
+  foreach ($polygon_coords as $service_area_id => $service_area_points) {
+    $polygons[$service_area_id] = geoPHP::load('POLYGON((' . implode(',', $service_area_points) . ', ' . $service_area_points[0] . '))');
+  }
   return $polygons;
 }
 
+/*
+ * Generate form for all possible transfers
+ */
 function gtfs_manager_transfer_form($form, &$form_state, $transfers) {
   //loop through transfers
   $form['#id'] = 'transfer-form';
@@ -2845,6 +2985,7 @@ function fetch_active_transfers(){
     on t2.tid = st2.tid
   join routes r2
     on r2.rid = t2.rid
+  order by stop_name
 SQL;
 
   $result = db_query($query);
@@ -2939,7 +3080,9 @@ join agencies a2
   on a2.aid = r2.aid
 where r2.rid != r.rid
 having first_next != second_next
-  and first_prev != second_next;
+  and first_prev != second_next
+order by departing_stop_name
+limit 60
 SQL;
 
   $result = db_query($query);
@@ -2952,7 +3095,8 @@ SQL;
     //index the result and the options so that they are easily
     //matched after the submit
     $transfer->index = $i;
-    array_push($transfers['data'], $transfer);
+    $transfers['data'][] = $transfer;
+
     $transfers['options'][$i] = 'Transfer available at '
       . $transfer->arrival_stop_name
       . ' from route <em>'
@@ -2973,13 +3117,10 @@ SQL;
 
 function gtfs_manager_transfer_form_submit($form, &$form_state) {
   $selected = $form_state['values']['transfer_locations'];
-  watchdog('selected', $selected);
   foreach ($form_state['transfers']['data'] as $option) {
     //look for transfer index in $selections
     if (in_array($option->index, $selected)) {
       $transfer = entity_get_controller('transfer')->create();
-
-      watchdog('option', serialize($option));
 
       $transfer->from_stop_id = $option->arrival_sid;
       $transfer->to_stop_id = $option->departing_sid;
@@ -3037,24 +3178,28 @@ function capture_search_data(&$form_state, $num_results, $return_num_results) {
 function gtfs_manager_stop_name_autocomplete($string) {
   $matches = array();
 
-  // The stops table
+  // build autocomplete results using a union between cities and stops tables
+  // stops
   $query = db_select('stops', 's')
     ->fields('s', array('stop_name'))
     ->fields('p', array('code'));
-
    $query->leftJoin('provinces', 'p', 's.province_id = p.province_id');
+   $query->condition('s.stop_name', '%' . db_like($string) . '%', 'LIKE');
+   $query->range(0, 10);
+   // cities
+   $query2 = db_select('cities', 'c')
+    ->fields('c', array('city_name'))
+    ->fields('p', array('code'));
+   $query2->leftJoin('provinces', 'p', 'c.province_id = p.province_id');
+   $query2->condition('c.city_name', '%' . db_like($string) . '%', 'LIKE');
+   $query2->range(0, 10);
 
-   $return = $query ->condition('s.stop_name', '%' . db_like($string) . '%', 'LIKE')
-    ->range(0, 10)
-    ->execute();
+   $query->union($query2, 'UNION DISTINCT');
 
-  // add matches to $matches
-  foreach ($return as $row) {
-    $match = check_plain($row->stop_name);
+   $result = $query->execute();
 
-    if (!empty($row->code)) {
-      $match .= ' (' . check_plain($row->code) . ')';
-    }
+  while ($match = $result->fetchObject() ) {
+    $match = check_plain($match->stop_name) . ' (' . check_plain($match->code) . ')';
     $matches[$match] = $match;
   }
   // return for JS
@@ -3077,10 +3222,12 @@ function fetch_service_features() {
 
   while ($service_feature = $result->fetchObject()) {
 
-    $variables = array('path' => $service_feature->service_feature_icon_url,
-		       'height' => '25px',
-		       'width' => '25px'
-		       );
+    $variables = array(
+    			'path' => $service_feature->service_feature_icon_url,
+		        'height' => '25px',
+		        'width' => '25px',
+                'attributes' => array('class' => 'feature-icon'),
+    );
 
     $img = theme('image', $variables);
 
@@ -3158,7 +3305,8 @@ function features_for($result) {
       $image_variables = array(
         'path' => $feature_icon_url,
         'height' => '25px',
-        'width' => '25px'
+        'width' => '25px',
+        'attributes' => array('class' => 'feature-icon'),
       );
 
       $origin_features .= theme('image', $image_variables);
@@ -3168,13 +3316,32 @@ function features_for($result) {
       $image_variables = array(
         'path' => $feature_icon_url,
         'height' => '25px',
-        'width' => '25px'
+        'width' => '25px',
+        'attributes' => array('class' => 'feature-icon'),
       );
 
       $destination_features .= theme('image', $image_variables);
     }
 
   $features .= $origin_features . '<br />' . $destination_features;
+
+  } elseif ($result->search_type == 'one_service_area') {
+
+    $agency_features = split_map_features($result->agency_service_features);
+    $route_features = split_map_features($result->route_service_features);
+
+    $feature_list = array_merge($agency_features, $route_features);
+
+  foreach ($feature_list as $key => $feature_icon_url) {
+      $image_variables = array(
+        'path' => $feature_icon_url,
+        'height' => '25px',
+        'width' => '25px',
+        'attributes' => array('class' => 'feature-icon'),
+      );
+
+      $features .= theme('image', $image_variables);
+    }
 
   } else {
 
@@ -3200,7 +3367,8 @@ function features_for($result) {
       $image_variables = array(
         'path' => $feature_icon_url,
         'height' => '25px',
-        'width' => '25px'
+        'width' => '25px',
+        'attributes' => array('class' => 'feature-icon'),
       );
 
       $features .= theme('image', $image_variables);
@@ -3253,10 +3421,105 @@ function wheelchair_access_for($agency_features, $route_features, $from_stop_fea
     $image_variables = array(
       'path' => $from_stop_features['Wheelchair Access'],
       'height' => '25px',
-      'width' => '25px'
+      'width' => '25px',
+      'attributes' => array('class' => 'feature-icon'),
     );
 
     $feature_string .= theme('image', $image_variables);
   }
   return $feature_string;
+}
+
+/*
+ * fetches the lat and long for a city and province code
+ */
+function fetch_centroid_for($city_name, $province_code) {
+  $query = db_select('cities', 'c')
+    ->fields('c', array('city_lat', 'city_long'));
+  $query->join('provinces', 'p', 'p.province_id = c.province_id');
+
+  return $query->condition('p.code', $province_code, '=')
+    ->condition('c.city_name', $city_name, '=')
+    ->execute()
+    ->fetchObject();
+}
+
+/*
+ * fetches search result information for a search result within a single polygon
+ */
+function fetch_result_info_for($service_area_id) {
+  $query =<<<SQL
+  select fa.price
+  ,  tt.transportation_type_name as transportation_type
+  ,  a.agency_name as departure_agency_name
+  ,  a.agency_url departure_agency_url
+  ,  a.agency_fare_url
+  ,  a.agency_phone
+  ,  a.agency_email
+  ,  a.agency_info
+  ,  r.route_desc
+  ,  group_concat(distinct concat(sf.service_feature_name, '-', sf.service_feature_icon_url) separator ',') as route_service_features
+  ,  group_concat(distinct concat(sf2.service_feature_name, '-', sf2.service_feature_icon_url) separator ',') as agency_service_features
+from routes_service_areas rsa
+join routes r
+  on r.rid = rsa.rid
+join transportation_types tt
+  on tt.transportation_type_id = r.transportation_type_id
+left join route_service_features rsf
+  on rsf.rid = r.rid
+left join service_features sf
+  on sf.service_feature_id = rsf.service_feature_id
+join agencies a
+  on a.aid = r.aid
+left join agency_service_features asf
+  on asf.aid = a.aid
+left join service_features sf2
+  on sf2.service_feature_id = asf.service_feature_id
+left join fare_rules fr
+  on fr.route_id = r.rid
+left join fare_attributes fa
+  on fa.fare_id = fr.fare_id
+where rsa.service_area_id = :d
+group by rsa.service_area_id, r.rid, a.aid
+SQL;
+
+return db_query($query, array(':d' => $service_area_id))->fetchObject();
+
+}
+
+function fetch_features($type, $id, $return_ids = FALSE) {
+  $features = $return_ids ? array() : '';
+
+  $id_map = array(
+    'agency' => 'aid',
+    'route' => 'rid',
+    'stop' => 'sid'
+  );
+
+  $table_name = $type . '_service_features';
+
+  $query = "select * from "
+    . $table_name
+    . " t join service_features sf on sf.service_feature_id =  t.service_feature_id"
+    . " where "
+    . $id_map[$type]
+    . " = :id";
+
+  $result = db_query($query, array(':id' => $id));
+
+  while ($feature = $result->fetchObject()) {
+    if ($return_ids) {
+     $features[$feature->service_feature_id] = $feature->service_feature_id;
+    } else {
+      $image_variables = array(
+        'path' => $feature->service_feature_icon_url,
+        'height' => '25px',
+        'width' => '25px',
+        'attributes' => array('class' => 'feature-icon'),
+      );
+
+      $features .= theme('image', $image_variables);
+    }
+  }
+  return $features;
 }

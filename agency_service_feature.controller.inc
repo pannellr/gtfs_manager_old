@@ -25,24 +25,24 @@ class AgencyServiceFeatureController extends DrupalDefaultEntityController {
 
     try {
       global $user;
-      
+
       //determine if agency_service_feature is new
       $agency_service_feature->is_new = empty($agency_service_feature->agency_service_feature_id);
 
       //set timestamps
       if (empty($agency_service_feature->created_at)) {
-	$agency_service_feature->created_at = REQUEST_TIME;
+	    $agency_service_feature->created_at = REQUEST_TIME;
       }
 
       $agency_service_feature->updated_at = REQUEST_TIME;
 
       // if this is a new agency_service_feature
       if ($agency_service_feature->is_new) {
-	// Save the agency_service_feature
-	drupal_write_record('agency_service_features', $agency_service_feature);
+	    // Save the agency_service_feature
+	    drupal_write_record('agency_service_features', $agency_service_feature);
       } else {
-	// update the agency_service_feature
-	drupal_write_record('agency_service_features', $agency_service_feature, 'agency_service_feature_id');
+	    // update the agency_service_feature
+	   drupal_write_record('agency_service_features', $agency_service_feature, 'agency_service_feature_id');
       }
 
       // Clear internal properties
@@ -62,27 +62,23 @@ class AgencyServiceFeatureController extends DrupalDefaultEntityController {
 
   public function delete($agency_service_feature_ids) {
     if (!empty($agency_service_feature_ids)) {
-      $agency_service_features = $this->load($agency_service_feature_ids, array());
+
       $transaction = db_transaction();
 
+      watchdog('id', serialize($agency_service_feature_ids));
+
       try {
-	db_delete('agency_service_features')
-	  ->condition('agency_service_feature_id', $agency_service_feature_ids, 'IN')
-	  ->execute();
+	    db_delete('agency_service_features')
+	      ->condition('agency_service_feature_id', $agency_service_feature_ids, 'IN')
+	      ->execute();
 
-	foreach ($agency_service_features as $agency_service_feature_id => $agency_service_feature) {
-	  field_attach_delete('agency_service_feature', $agency_service_feature);
-	}
-
-	db_ignore_slave();
+	    db_ignore_slave();
 
       } catch (Exception $e) {
-	$transaction->rollback();
-	watchdog_exception('agency_service_feature', $e, NULL, WATCHDOG_ERROR);
-	return FALSE;
+    	$transaction->rollback();
+    	watchdog_exception('agency_service_feature', $e, NULL, WATCHDOG_ERROR);
+    	return FALSE;
       }
-
-      module_invoke_all('entity_delete', $agency_service_feature, 'agency_service_feature');
 
       //Clear the page, block, and agency_service_feature caches
       cache_clear_all();

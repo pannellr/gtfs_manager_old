@@ -1789,7 +1789,59 @@ function gtfs_manager_schema() {
     'primary key' => array('city_id'),
   );
 
-
+  // countries table
+  $schema['countries'] = array(
+    'description' => 'Table for coutries.',
+    'fields' => array(
+      'country_id' => array(
+        'description' => 'The primary identifier for a country.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'country_name' =>  array(
+        'desctiption' => 'The name of the country',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'country_code' =>  array(
+        'desctiption' => 'The code for the country ie CA',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created_at' => array(
+         'description' => 'The record creation date epoc',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the record was last updated',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('country_id'),
+  );
 
   return $schema;
 }
@@ -2552,5 +2604,67 @@ function gtfs_manager_update_8() {
   );
 
   db_create_table('cities', $schema['cities']);
+
+}
+
+function gtfs_manager_update_9() {
+
+  // countries table
+  $schema['countries'] = array(
+    'description' => 'Table for coutries.',
+    'fields' => array(
+      'country_id' => array(
+        'description' => 'The primary identifier for a country.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'country_name' =>  array(
+        'desctiption' => 'The name of the country',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'country_code' =>  array(
+        'desctiption' => 'The code for the country ie CA',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created_at' => array(
+         'description' => 'The record creation date epoc',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the record was last updated',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('country_id'),
+  );
+
+  db_create_table('countries', $schema['countries']);
+
+  db_add_unique_key('routes_service_areas', 'service_area_id_rid', array('service_area_id', 'rid'));
 
 }

@@ -2,7 +2,7 @@
 /**
  * @file template for route stops
  *
- * 
+ *
  */
 ?>
 <table class="route-stops-view">
@@ -14,12 +14,12 @@
       <th>TZ</th>
       <th>Lat</th>
       <th>Long</th>
-      <th>WC</th>
       <th>Arrives</th>
       <th>Departs</th>
       <th>Sequence</th>
       <th>Calendar</th>
-      <th></th>
+      <th>Features</th>
+      <th>Options</th>
     </tr>
   </thead>
   <tbody>
@@ -31,13 +31,13 @@
     <td><?php print $stop->province_name; ?></td>
     <td><?php print $stop->time_zone_name; ?></td>
     <td><?php print $stop->stop_lat; ?></td>
-    <td><?php print $stop->stop_long . ' | ' . $stop->map_link; ?></td>
-    <td><?php print $stop->wheelchair_boarding; ?></td>
+    <td><?php print $stop->stop_long; ?></td>
     <td><?php print $stop->arrival_time; ?></td>
     <td><?php print $stop->departure_time; ?></td>
     <td><?php print $stop->stop_sequence; ?></td>
     <td><?php print $stop->calendar; ?></td>
-    <td><?php print $stop->links; ?></td> 
+    <td><?php print $stop->features; ?></td>
+    <td><?php print implode('<br />', $stop->links); ?></td>
   </tr>
 <?php } ?>
  </tbody>
