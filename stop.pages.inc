@@ -58,6 +58,13 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
     '#default_value' => $stop->stop_desc,
   );
 
+    //checkbox for wheelchair access
+  $form['gtfs_manager_wheelchair_boarding'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Has wheelchair access'),
+    '#default_value' => $stop->wheelchair_boarding,
+  );
+
   //tetfield for stop lattitude
   $form['gtfs_manager_stop_lat'] = array(
     '#type' => 'textfield',
@@ -78,12 +85,14 @@ function gtfs_manager_stop_form($form, &$form_state, $stop = null, $route = null
     '#required' => TRUE,
   );
 
-  //checkbox for wheelchair access
-  //$form['gtfs_manager_wheelchair_boarding'] = array(
-  //  '#type' => 'checkbox',
-  //  '#title' => t('Has wheelchair access'),
-  //  '#default_value' => $stop->wheelchair_boarding,
-  //);
+  //tetfield for trip distance
+  $form['gtfs_manager_shape_dist_traveled'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Distance from previous stop in kilometers'),
+    '#description' => t('Up to 3 decimals of accuracy.'),
+    '#size' => 24,
+    '#default_value' => $stop->shape_dist_traveled,
+  );
 
   //timepicker for stop arrival time
   $form['gtfs_manager_stop_arrival_time'] = array(
@@ -265,25 +274,35 @@ function gtfs_manager_stop_form_submit($form, &$form_state) {
   // Save stop
   $stop->stop_name = trim($form_state['values']['gtfs_manager_stop_name']);
   $stop->stop_desc = trim($form_state['values']['gtfs_manager_stop_desc']);
-  $stop->stop_lat = $form_state['values']['gtfs_manager_stop_lat'];
-  $stop->stop_long = $form_state['values']['gtfs_manager_stop_long'];
-  //$stop->wheelchair_boarding =
-  //  $form_state['values']['gtfs_manager_wheelchair_boarding'];
+  $stop->stop_lat = trim($form_state['values']['gtfs_manager_stop_lat']);
+  $stop->stop_long = trim($form_state['values']['gtfs_manager_stop_long']);
+
   $stop->province_id = $form_state['values']['gtfs_manager_province_id'];
   $stop->time_zone_id = $form_state['values']['gtfs_manager_time_zone_id'];
-
 
   field_attach_submit('stop', $stop, $form, $form_state);
 
   stop_save($stop);
 
+
+  if ($form_state['values']['gtfs_manager_wheelchair_boarding'] == 1) {
+    $feature = entity_get_controller('stop_service_feature')->create();
+
+    //get wheelchair access feature id
+    $feature->sid = $stop->sid;
+    $feature->service_feature_id = db_query("select service_feature_id from service_features where service_feature_name = 'Wheelchair Access'")->fetchField();
+    $feature->created_by = $user->name;
+    $feature->updated_by = $user->name;
+    entity_get_controller('stop_service_feature')->save($feature);
+  }
+
   // stop time save
   $stop_time->tid = $trip->tid;
   $stop_time->sid = $stop->sid;
-  $stop_time->arrival_time =
-    $form_state['values']['gtfs_manager_stop_arrival_time'];
-  $stop_time->departure_time =
-    $form_state['values']['gtfs_manager_stop_departure_time'];
+  $stop_time->shape_dist_traveled = trim($form_state['values']['gtfs_manager_shape_dist_traveled']);
+  watchdog('stop time', serialize($stop_time));
+  $stop_time->arrival_time = $form_state['values']['gtfs_manager_stop_arrival_time'];
+  $stop_time->departure_time = $form_state['values']['gtfs_manager_stop_departure_time'];
 
   //maintain sequence by reordering the sequence with each addition
   $update_type = $is_new ? 'new' : 'edit';
@@ -533,8 +552,6 @@ function fetch_stop_position($sid) {
  * Form builder for stops upload
  */
 function gtfs_manager_route_stops_upload_form($form, &$form_state, $route) {
-
-  $form = array();
 
   $form_state['route'] = $route;
 

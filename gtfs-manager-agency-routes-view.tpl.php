@@ -10,7 +10,8 @@
   <table>
     <thead>
       <tr>
-      	<th>Route Name</th>
+      	<th>Name</th>
+      	<th>Short Name</th>
       	<th>Desc</th>
       	<th>Type</th>
       	<th>Vehicle type</th>
@@ -23,6 +24,7 @@
 	 <?php foreach ($variables['routes'] as $route) {?>
 	 <tr>
 	   <td><?php print $route->route_long_name; ?></td>
+	   <td><?php print $route->route_short_name; ?></td>
 	   <td><?php print $route->route_desc; ?></td>
 	   <td><?php print $route->route_service_type; ?></td>
 	   <td><?php print $route->transportation_type_id; ?></td>

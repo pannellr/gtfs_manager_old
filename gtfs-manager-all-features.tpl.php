@@ -7,6 +7,6 @@
 
 <h2>All features</h2>
 
-<?php foreach ($variables['service_features'] as $features) {?>
+<?php foreach ($variables['service_features'] as $feature) {?>
 <?php print $feature->markup; ?>
 <?php } ?>

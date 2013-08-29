@@ -25,11 +25,19 @@ function gtfs_manager_fare_form($form, &$form_state, $fare = null) {
     '#required' => TRUE,
   );
 
+  $form['gtfs_manager_transfers'] = array(
+    '#type' => 'select',
+    '#title' => t('Transfer allowance'),
+    '#default_value' => $fare->transfers,
+    '#options' => array('0' => t('Unlimited transfers'), '1' => t('One Transfer'), '2' => t('Two Transfers')),
+    '#required' => TRUE,
+  );
+
   $form['gtfs_manager_payment_method'] = array(
     '#type' => 'radios',
     '#title' => 'Payment Method',
-    '#options' => 
-    array(0 => t('Fare is paid on board'), 
+    '#options' =>
+    array(0 => t('Fare is paid on board'),
 	  1 => t('Fare is paid before boarding')
     ),
     '#default_value' => $fare->payment_method,
@@ -44,7 +52,7 @@ function gtfs_manager_fare_form($form, &$form_state, $fare = null) {
     '#weight' => 5,
     '#submit' => array('gtfs_manager_fare_form_submit'),
   );
-  
+
   if (!empty($route->rid)) {
     $form['buttons']['delete'] = array(
       '#type' => 'submit',
@@ -64,7 +72,7 @@ function gtfs_manager_fare_form($form, &$form_state, $fare = null) {
 
 function fetch_currency_types() {
   $result = db_query('select * from {currency_types}');
-  
+
   $options = array();
 
   foreach ($result as $type) {
@@ -85,7 +93,7 @@ function gtfs_manager_fare_form_submit($form, &$form_state) {
   global $user;
 
   $fare = $form_state['fare'];
-  
+
 
   // if this is a new record
   if (empty($route->created_by)) {
@@ -93,18 +101,19 @@ function gtfs_manager_fare_form_submit($form, &$form_state) {
   }
 
   $fare->updated_by = $user->name;
-  
+
 
   $fare->price = $form_state['values']['gtfs_manager_route_fare_price'];
   $fare->currency_type_id = $form_state['values']['gtfs_manager_currency_type_id'];
+  $fare->transfers = $form_state['values']['gtfs_manager_transfers'];
   $fare->payment_method = $form_state['values']['gtfs_manager_payment_method'];
-  
+
   //notify field widgets
   field_attach_submit('fare', $fare, $form, $form_state);
 
   //Save
   fare_save($fare);
-		    
+
   //gtfs_manager_service_area_points
 
   drupal_set_message(t('Fare saved'));
@@ -121,8 +130,8 @@ function gtfs_manager_fare_form_delete_submit($form, &$form_state) {
   }
 
   $fare = $form['#fare'];
-  $form_state['redirect'] = array('fare/' . $fare->fare_id . '/delete', 
-    array('query' => $destination));  
+  $form_state['redirect'] = array('fare/' . $fare->fare_id . '/delete',
+    array('query' => $destination));
 }
 
 function gtfs_manager_show_fares() {
@@ -131,7 +140,7 @@ function gtfs_manager_show_fares() {
     ->fields('f', array('fare_id', 'price', 'payment_method'));
 
   $query->join('currency_types', 'ct', 'ct.currency_type_id = f.currency_type_id');
-  
+
   $result = $query->fields('ct', array('currency_type_name', 'currency_type_code'))
     ->execute();
 
@@ -143,8 +152,8 @@ function gtfs_manager_show_fares() {
   }
 
   $variables['fares'] = $fares;
-  
-  
+
+
   return theme('gtfs_manager_show_fares', $variables);
 
 }
@@ -165,7 +174,6 @@ function route_fare_form($form, &$form_state, $route) {
   $form['#route'] = $route;
   $form_state['route'] = $route;
   $form_state['combinations'] = $combinations;
-  //$form['#theme'] = 'route_fare_form_theme';
 
   $fare_options = fetch_fares();
 
@@ -173,10 +181,6 @@ function route_fare_form($form, &$form_state, $route) {
 
     $form['gtfs_manager_zone_fare-' . $combination->from_sid . '_' . $combination->to_sid] = array(
       '#type' => 'select',
-      //'#title' => t('Select Fare for @from to @to', 
-      //	    array('@from' => $combination->from_stop_name, 
-      //		  '@to' => $combination->to_stop_name)
-      //	    ),
       '#default_value' => $combination->fare_id,
       '#options' => $fare_options,
     );
@@ -206,54 +210,37 @@ function gtfs_manager_route_fares_form_submit($form, &$form_state) {
   global $user;
 
   $combinations = $form_state['combinations'];
-  
+
   foreach ($combinations as $combination) {
-    
-    $fare_id = $form_state['values']['gtfs_manager_zone_fare-' 
-				     . $combination->from_sid 
-				     . '_' 
+
+    $fare_id = $form_state['values']['gtfs_manager_zone_fare-'
+				     . $combination->from_sid
+				     . '_'
 				     . $combination->to_sid];
 
     if (!empty($fare_id)) {
 
       $fare_rule = entity_get_controller('fare_rule')->create();
-	
+
       $fare_rule->created_by = $user->name;
       $fare_rule->updated_by = $user->name;
-      
+
       $fare_rule->fare_id = $fare_id;
-      
+
       //create zone_ids for from_stop and to_stop if they do not exist
-    
-      $fare_rule->origin_id = get_zone_for($combination->from_sid);
-      
-      $fare_rule->destination_id = get_zone_for($combination->to_sid);
-      
-      watchdog('fare_rule', serialize($fare_rule));
+
+      if (!$fare_rule->origin_id = get_zone_for($combination->from_sid)) {
+        $fare_rule->origin_id = create_zone_for($combination->from_sid);
+      }
+
+      if (!$fare_rule->destination_id = get_zone_for($combination->to_sid)) {
+        $fare_rule->destination_id = create_zone_for($combination->to_sid);
+      }
 
       fare_rule_save($fare_rule);
     }
   }
   drupal_set_message('Fare Rule(s) saved');
-}
-
-function get_zone_for($sid) {
-  $zone_id = db_select('stops', 's')
-    ->fields('s', array('zone_id'))
-    ->execute()
-    ->fetchField();
-
-  if (empty($zone_id)) {
-    $zone_id = create_zone_for($sid);
-  }
-
-  return $zone_id;	     
-}
-
-function create_zone_for($sid) {
-  $query = 'update stops set zone_id = sid where sid = :sid';
-  db_query($query, array(':sid' => $sid));
-  return $sid;
 }
 
 
@@ -311,29 +298,4 @@ SQL;
   return $combinations;
 }
 
-function fetch_fares() {
 
-  $query = db_select('fare_attributes', 'fa');
-
-  $query->join('currency_types', 
-	       'ct', 
-	       'ct.currency_type_id = fa.currency_type_id'
-	       );
-  $query->orderBy('price', 'ASC');
-
-  $result = $query->fields('fa', array('fare_id', 'price'))
-    ->fields('ct', array('currency_type_code'))
-    ->execute();
-  
-  $fares = array();
-  $fares[0] = 'Choose Fare';
-
-  while ($fare = $result->fetchObject()) {
-    $fares[$fare->fare_id] = money_format('%i', $fare->price) 
-      . ' ' 
-      . $fare->currency_type_code;
-  }
-
-  return $fares;
-
-}

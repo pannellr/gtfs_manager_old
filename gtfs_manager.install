@@ -65,6 +65,12 @@ function gtfs_manager_schema() {
         'description' => 'The id of the zone associated with this agency',
         'type' => 'int',
       ),
+      'agency_fare_type' => array(
+	  	'description' => 'Determines which type of fare entry form to display',
+	  	'type' => 'int',
+	  	'not null' => TRUE,
+	  	'default' => 0,
+      ),
       'agency_lang' => array(
         'description' => 'The language of the agency',
         'type' => 'varchar',
@@ -126,6 +132,10 @@ function gtfs_manager_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
+      ),
+      'service_id' => array(
+	  	'description' => 'Allows a calendar to be associated with a route for service areas',
+	  	'type' => 'int',
       ),
       'transportation_type_id' => array(
         'description' => 'The transportation type id for this route',
@@ -461,6 +471,27 @@ function gtfs_manager_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'is_first' => array(
+	  	'description' => 'boolean that is set to true if record is the first element in the route sequence',
+	  	'type' => 'char',
+      	'binary' => TRUE,
+      	'not null' => TRUE,
+      	'default' => 0,
+      ),
+      'is_last' => array(
+	  	'description' => 'boolean that is set to true if record is the last element in the route sequence',
+	  	'type' => 'char',
+      	'binary' => TRUE,
+      	'not null' => TRUE,
+      	'default' => 0,
+      ),
+      'shape_dist_traveled' => array(
+  	  	'description' => 'The distance from the previous stop in kilometers',
+        'type' => 'float',
+        'precision' => 3,
+        'not null' => TRUE,
+        'default' => '0.0',
+      ),
       'created_at' => array(
          'description' => 'The agency creation date epoc',
          'type' => 'int',
@@ -691,12 +722,12 @@ function gtfs_manager_schema() {
         'type' => 'int',
         'unsigned' => TRUE,
       ),
-      'ignore' => array(
+      'is_active' => array(
         'description' => 'Ignore this transfer',
         'type' => 'char',
         'binary' => TRUE,
         'not null' => TRUE,
-        'default' => 0,
+        'default' => 1,
       ),
       'created_at' => array(
         'description' => 'The agency creation date epoc',
@@ -861,6 +892,9 @@ function gtfs_manager_schema() {
       ),
     ),
     'primary key' => array('fare_id'),
+    'unique keys' => array(
+      'price_cur_type_trans' => array('price', 'currency_type_id', 'payment_method', 'transfers'),
+    ),
   );
 
   // features table
@@ -1253,6 +1287,9 @@ function gtfs_manager_schema() {
       ),
     ),
     'primary key' => array('service_area_id'),
+    'unique keys' => array(
+    	'routes_service_areas' => array('service_area_id', 'rid'),
+    ),
     'indexes' => array(
       'rid' => array('rid'),
     ),
@@ -1633,9 +1670,7 @@ function gtfs_manager_schema() {
       ),
       'fuel_type_id' => array(
         'description' => 'The id for the vehicle fuel type.',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
+        'type' => 'int',
       ),
       'created_at' => array(
         'description' => 'The creation date epoc',
@@ -1813,6 +1848,10 @@ function gtfs_manager_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'distance_unit_id' => array(
+	    'description' => 'The distance unit id for the preferred unit for this country.  i.e. km or miles or lightyears',
+        'type' => 'int',
+      ),
       'created_at' => array(
          'description' => 'The record creation date epoc',
          'type' => 'int',
@@ -1842,6 +1881,62 @@ function gtfs_manager_schema() {
     ),
     'primary key' => array('country_id'),
   );
+
+  $schema['distance_units'] = array(
+    'description' => 'The table for dinstance unit types.',
+    'fields' => array(
+      'distance_unit_id' => array(
+        'description' => 'The primary identifier for a distance unit.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'distance_unit_name' => array(
+        'description' => 'The name of this distance unit.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'distance_unit_code' => array(
+	  	'description' => 'The distance unit code for the preferred unit for this country.  i.e. km or miles or lightyears',
+      	'type' => 'varchar',
+      	'length' => 32,
+       	'not null' => TRUE,
+      ),
+      'created_at' => array(
+         'description' => 'The creation date epoc',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the record was last updated',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'distance_unit_id' => array('distance_unit_id'),
+    ),
+    'primary key' => array('distance_unit_id'),
+  );
+
 
   return $schema;
 }
@@ -2668,3 +2763,178 @@ function gtfs_manager_update_9() {
   db_add_unique_key('routes_service_areas', 'service_area_id_rid', array('service_area_id', 'rid'));
 
 }
+
+function gtfs_manager_update_10() {
+  //add agency_fare_type to agencies table
+  db_add_field('agencies', 'agency_fare_type',
+    array(
+	  'description' => 'Determines which type of fare entry form to display',
+	  'type' => 'int',
+	  'not null' => TRUE,
+	  'default' => 0,
+   ));
+
+  //add service_id column to routes for service areas
+  db_add_field('routes', 'service_id',
+    array(
+	  'description' => 'Allows a calendar to be associated with a route for service areas',
+	  'type' => 'int',
+  ));
+
+  //add is_first column to stop_times
+  db_add_field('stop_times', 'is_first',
+    array(
+	  'description' => 'boolean that is set to true if record is the first element in the route sequence',
+	  'type' => 'char',
+      'binary' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+  ));
+
+  //add is_last column to stop_times
+  db_add_field('stop_times', 'is_last',
+    array(
+	  'description' => 'boolean that is set to true if record is the last element in the route sequence',
+	  'type' => 'char',
+      'binary' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+  ));
+}
+
+function gtfs_manager_update_11() {
+  //add field to hold the distance between stops
+  db_add_field('stop_times', 'shape_dist_traveled',
+    array(
+	  'description' => 'The distance from the previous stop in kilometers',
+      'type' => 'float',
+      'precision' => 3,
+      'not null' => TRUE,
+      'default' => '0.0',
+  ));
+}
+
+function gtfs_manager_update_12() {
+
+ // cities table
+  $schema['distance_units'] = array(
+    'description' => 'The table for dinstance unit types.',
+    'fields' => array(
+      'distance_unit_id' => array(
+        'description' => 'The primary identifier for a distance unit.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'distance_unit_name' => array(
+        'description' => 'The name of this distance unit.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created_at' => array(
+         'description' => 'The creation date epoc',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+       'updated_at' => array(
+         'description' => 'The date the record was last updated',
+         'type' => 'int',
+         'not null' => TRUE,
+         'default' => 0,
+       ),
+      'created_by' => array(
+        'description' => 'The creator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'updated_by' => array(
+        'description' => 'The updator user name',
+        'type' => 'varchar',
+        'length' => 25,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'distance_unit_id' => array('distance_unit_id'),
+    ),
+    'primary key' => array('distance_unit_id'),
+  );
+
+  db_create_table('distance_units', $schema['distance_units']);
+
+  //add field to hold the distance between stops
+  db_add_field('countries', 'distance_unit_id',
+    array(
+	  'description' => 'The distance unit id for the preferred unit for this country.  i.e. km or miles or lightyears',
+      'type' => 'int',
+  ));
+
+}
+
+function gtfs_manager_update_13() {
+  //add field to hold the distance between stops
+  db_add_field('distance_units', 'distance_unit_code',
+    array(
+	  'description' => 'The distance unit code for the preferred unit for this country.  i.e. km or miles or lightyears',
+      'type' => 'varchar',
+      'length' => 32,
+       'not null' => TRUE,
+  ));
+}
+
+function gtfs_manager_update_14() {
+  //add field to hold the distance between stops
+  db_add_field('provinces', 'country_id',
+    array(
+	  'description' => 'The id of the country that this province belongs to.',
+      'type' => 'int',
+  ));
+}
+
+function gtfs_manager_update_15() {
+
+  db_add_unique_key('fare_attributes', 'price_cur_type_trans', array('price', 'currency_type_id', 'payment_method', 'transfers'));
+  db_add_unique_key('fare_rules', 'origin_destination', array('origin_id', 'destination_id'));
+
+
+}
+
+function gtfs_manager_update_16() {
+  db_drop_unique_key('fare_rules', 'origin_destination');
+}
+
+function gtfs_manager_update_17() {
+  db_change_field('transfers', 'ignore', 'is_active',
+    array(
+    	'description' => 'boolean used to determine if a transfer has been deactivated',
+     	'type' => 'char',
+        'binary' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+        ));
+}
+
+/*Didn't work on prod might need to write the query directly
+ *
+ *
+function gtfs_manager_update_16() {
+  //make fare price decimal type
+  db_change_field('fare_attributes', 'price', 'price',
+    array('description' => 'the fare price',
+	   'type' => 'numeric',
+      'size' => 'normal',
+      'not null' => TRUE,
+      'default' => 0,
+      'precision' => 2,
+      'scale' => 6
+	));
+
+}
+
+*/

@@ -14,6 +14,7 @@ class AgencyController extends DrupalDefaultEntityController {
       'agency_info' => '',
       'agency_fare_url' => '',
       'time_zone_id' => '',
+      'agency_fare_type' => '',
       'created_at' => '',
       'updated_at' => '',
       'created_by' => '',
@@ -32,7 +33,7 @@ class AgencyController extends DrupalDefaultEntityController {
 
       //set timestamps
       if (empty($agency->created_at)) {
-	$agency->created_at = REQUEST_TIME;
+	    $agency->created_at = REQUEST_TIME;
       }
 
       $agency->updated_at = REQUEST_TIME;
@@ -42,13 +43,13 @@ class AgencyController extends DrupalDefaultEntityController {
 
       // if this is a new agency
       if ($agency->is_new) {
-	// Save the agency
-	drupal_write_record('agencies', $agency);
-	$op = 'insert';
+	    // Save the agency
+	    drupal_write_record('agencies', $agency);
+	    $op = 'insert';
       } else {
-	// update the agency
-	drupal_write_record('agencies', $agency, 'aid');
-	$op = 'update';
+	    // update the agency
+	    drupal_write_record('agencies', $agency, 'aid');
+	    $op = 'update';
       }
 
       // Save fields
@@ -78,21 +79,21 @@ class AgencyController extends DrupalDefaultEntityController {
       $transaction = db_transaction();
 
       try {
-	db_delete('agencies')
-	  ->condition('aid', $aids, 'IN')
-	  ->execute();
+	    db_delete('agencies')
+	    ->condition('aid', $aids, 'IN')
+	    ->execute();
 
-	foreach ($agencies as $agency_id => $agency) {
-	  field_attach_delete('agency', $agency);
-	}
+	    foreach ($agencies as $agency_id => $agency) {
+	      field_attach_delete('agency', $agency);
+	    }
 
-	db_ignore_slave();
+	    db_ignore_slave();
 
-      } catch (Exception $e) {
-	$transaction->rollback();
-	watchdog_exception('agency', $e, NULL, WATCHDOG_ERROR);
-	return FALSE;
-      }
+        } catch (Exception $e) {
+      	  $transaction->rollback();
+    	  watchdog_exception('agency', $e, NULL, WATCHDOG_ERROR);
+    	  return FALSE;
+        }
 
       module_invoke_all('entity_delete', $agency, 'agency');
 

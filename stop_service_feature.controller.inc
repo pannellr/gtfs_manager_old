@@ -32,7 +32,7 @@ class StopServiceFeatureController extends DrupalDefaultEntityController {
 
       //set timestamps
       if (empty($stop_service_feature->created_at)) {
-	$stop_service_feature->created_at = REQUEST_TIME;
+	    $stop_service_feature->created_at = REQUEST_TIME;
       }
 
       $stop_service_feature->updated_at = REQUEST_TIME;
@@ -40,10 +40,10 @@ class StopServiceFeatureController extends DrupalDefaultEntityController {
       // if this is a new stop_service_feature
       if ($stop_service_feature->is_new) {
 	// Save the stop_service_feature
-	drupal_write_record('stop_service_features', $stop_service_feature);
+	  drupal_write_record('stop_service_features', $stop_service_feature);
       } else {
 	// update the stop_service_feature
-	drupal_write_record('stop_service_features', $stop_service_feature, 'stop_service_feature_id');
+	  drupal_write_record('stop_service_features', $stop_service_feature, 'stop_service_feature_id');
       }
 
       // Clear internal properties

@@ -1,7 +1,7 @@
 <?php
 
 class FareController extends DrupalDefaultEntityController {
-  
+
   /**
    * create empty fare object
    *
@@ -16,6 +16,7 @@ class FareController extends DrupalDefaultEntityController {
       'price' => '',
       'currency_type_id' => '',
       'payment_method' => '',
+      'transfers' => '',
       'created_at' => '',
       'updated_at' => '',
       'created_by' => '',
@@ -28,14 +29,13 @@ class FareController extends DrupalDefaultEntityController {
 
     try {
       global $user;
-      
+
       //determine if fare is new
-      $fare->is_new 
-	= empty($fare->fare_id);
+      $fare->is_new = empty($fare->fare_id);
 
       //set timestamps
       if (empty($fare->created_at)) {
-	$fare->created_at = REQUEST_TIME;
+	    $fare->created_at = REQUEST_TIME;
       }
 
       $fare->updated_at = REQUEST_TIME;
@@ -45,21 +45,14 @@ class FareController extends DrupalDefaultEntityController {
 
       // if this is a new fare
       if ($fare->is_new) {
-	// Save the fare
-	drupal_write_record('fare_attributes', $fare);
-	$op = 'insert';
+	    // Save the fare
+	    drupal_write_record('fare_attributes', $fare);
+	    $op = 'insert';
       } else {
-	// update the fare
-	drupal_write_record('fare_attributes', $fare, 
-			    'fare_id');
-	$op = 'update';
+	    // update the fare
+	    drupal_write_record('fare_attributes', $fare, 'fare_id');
+	    $op = 'update';
       }
-
-      // Save fields
-      $function = 'field_attach_' . $op;
-      $function('fare', $fare);
-
-      module_invoke_all('entity_' . $op, $fare, 'fare');
 
       // Clear internal properties
       unset($fare->is_new);

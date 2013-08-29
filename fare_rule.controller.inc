@@ -1,7 +1,7 @@
 <?php
 
 class FareRuleController extends DrupalDefaultEntityController {
-  
+
   /**
    * create empty fare_rule object
    *
@@ -10,7 +10,7 @@ class FareRuleController extends DrupalDefaultEntityController {
    * @return the empty Fare_Rule object
    */
 
-  public function create($fare_id = '') {
+  public function create($fare_id = FALSE) {
     return (object) array(
       'fare_id' => $fare_id,
       'route_id' => '',
@@ -27,38 +27,49 @@ class FareRuleController extends DrupalDefaultEntityController {
   public function save($fare_rule) {
     $transaction = db_transaction();
 
-    watchdog('fare_rule', serialize($fare_rule));
-
     try {
       global $user;
-      
+
+      $is_update = FALSE;
+      $where = '';
+      $args = array();
+      $update = db_update('fare_rules')
+        ->fields(array('fare_id' => $fare_rule->fare_id));
+
       $fare_rule->created_at = REQUEST_TIME;
       $fare_rule->updated_at = REQUEST_TIME;
-      
-      $query = 
-	'select 1 from fare_rules where origin_id = :o and destination_id = :d';
-      
-      $result = db_query($query, 
-			 array(':o' => $fare_rule->origin_id,
-			       ':d' => $fare_rule->destination_id
-			       )
-			 );
+      $fare_rule->updated_by = $user->name;
 
-      $is_update = $result->fetchField();
-	
-      watchdog('is update', $is_update);
+      if ($fare_rule->origin_id && $fare_rule->destination_id) {
+        $where = 'origin_id = :o and destination_id = :d';
+        $args = array(':o' => $fare_rule->origin_id, ':d' => $fare_rule->destination_id);
+        $update->condition('origin_id', $fare_rule->origin_id, '=')
+	      ->condition('destination_id', $fare_rule->destination_id, '=');
 
-      if ($is_update) {
+      } else if ($fare_rule->contains_id) {
+        $where = 'contains_id = :c';
+        $args = array(':c' => $fare_rule->contains_id);
+        $update->condition('contains_id', $fare_rule->contains_id, '=');
 
-	db_update('fare_rules')
-	  ->fields(array('fare_id' => $fare_rule->fare_id))
-	  ->condition('origin_id', $fare_rule->origin_id, '=')
-	  ->condition('destination_id', $fare_rule->destination_id, '=')
-	  ->execute();
+      } else if ($fare_rule->route_id) {
+        $where = 'route_id = :r';
+        $args = array(':r' => $fare_rule->route_id);
+        $update->condition('route_id', $fare_rule->route_id, '=');
 
-      } else {
-	drupal_write_record('fare_rules', $fare_rule);
       }
+
+        $query = 'select 1 from fare_rules where ' . $where;
+        $result = db_query($query, $args);
+        $is_update = $result->fetchField();
+
+
+        if ($is_update) {
+	        $update->execute();
+        } else {
+          $fare_rule->created_by = $user->name;
+	      drupal_write_record('fare_rules', $fare_rule);
+        }
+
 
       // Ignore slave server temporarily to give time for insert/update
       db_ignore_slave();

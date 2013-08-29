@@ -126,20 +126,48 @@ function gtfs_manager_service_feature_form_submit($form, &$form_state) {
 
   drupal_set_message(t('Service feature saved'));
 
-  $form_state['redirect'] = 'agencies/';
+  $form_state['redirect'] = 'service_feature/new';
 
 
 }
 
-function gtfs_manager_service_feature_form_delete_submit($form, &$form_state) {
+function gtfs_manager_service_feature_delete_confirm_submit($form, &$form_state) {
+   if ($form_state['values']['confirm']) {
+    $service_feature = $form['#service_feature'];
+    service_feature_delete($service_feature->service_feature_id);
+  }
 
+  drupal_set_message(t('The service feature %name has been deleted.',
+    array('%name' => $service_feature->service_feature_name)
+  ));
+
+  $form_state['redirect'] = 'service_feature/new';
 }
 
-/**
- * Save a new or updated service feature
- *
- * @param $service_feature a populated agency object
- */
-function service_feature_save($service_feature) {
-  return entity_get_controller('service_feature')->save($service_feature);
+function service_feature_page_edit($service_feature) {
+  drupal_set_title(t('<em>Edit @name route</em>', array('@name'=> $service_feature->service_feature_name)), PASS_THROUGH);
+  return drupal_get_form('gtfs_manager_service_feature_form', $service_feature);
+}
+
+
+function gtfs_manager_load_route_detail($route) {
+  $transportation_type =
+    transportation_type_load($route->transportation_type_id);
+  $route->transportation_type_name =
+    $transportation_type->transportation_type_name;
+  $variables['route'] = $route;
+  return theme('gtfs_manager_route_detail', $variables);
+}
+
+function gtfs_manager_service_feature_delete_confirm($form, &$form_state, $service_feature) {
+  $form['#service_feature'] = $service_feature;
+  $form['service_feature_id'] = array('#type' => 'value', '#value' => $service_feature->service_feature_id);
+  return confirm_form($form,
+    t('Are you sure you want to delete the service feature: %name?',
+      array('%name' => $service_feature->service_feature_name)),
+    'service_feature/' . $service_feature->service_feature_id,
+    t('This action cannot be undone.'),
+    t('Delete'),
+    t('Cancel')
+  );
 }

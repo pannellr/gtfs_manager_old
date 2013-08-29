@@ -5,6 +5,7 @@
 ?>
 <div class="<?php print $classes; ?>">
   <h2><?php print $from; ?> to <?php print $to; ?> - <?php print $date; ?></h2>
+  <p><small><em>Fare prices are subject to chage.</em></small></p>
   <a href="#" class="change-date prev">Previous day</a> |
   <a href="#" class="change-date next">Next day</a>
   <table  class="search-results-table">
@@ -27,7 +28,7 @@
       <tr class="search-result-row">
 	<td class="search-result-cell"><?php print $result->departure_departure_time; ?></td>
 	<td class="search-result-cell"><?php print $result->destination_arrival_time; ?></td>
-	<td class="search-result-cell"><?php print $result->duration; ?></td>
+	<td class="search-result-cell"><?php print $result->duration . $result->days; ?></td>
 	<td class="search-result-cell"><?php print $result->price; ?></td>
 	<td class="search-result-cell"><?php print $result->transfer;?></td>
 	<td class="search-result-cell"><?php print $result->features;?></td>
@@ -46,7 +47,7 @@
 
       <?php if (!empty($return_results)) { ?>
   <h1>Return Trip</h1>
-  <h2><?php print $return_from; ?> to <?php print $return_to; ?> - <?php print $return_date; ?></h2>
+  <h2><?php print $to; ?> to <?php print $from; ?> - <?php print $return_date; ?></h2>
   <a href="#" class="change-date prev return">Previous day</a> |
   <a href="#" class="change-date next return">Next day</a>
   <table>
@@ -55,8 +56,8 @@
 	<th>Leaves</th>
 	<th>Arrives</th>
 	<th>Duration</th>
-	<th></th>
-	<th>$Trans</th>
+	<th>$</th>
+	<th>Transfers</th>
 	<th>Features</th>
 	<th>Type</th>
 	<th>Provider</th>

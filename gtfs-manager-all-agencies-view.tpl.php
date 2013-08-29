@@ -5,6 +5,7 @@
 ?>
 
 <div class="all-agencies-view">
+  <?php print implode('<br />', $links); ?>
   <table>
     <thead>
       <tr>
@@ -21,7 +22,7 @@
 
    <?php foreach ($agencies as $agency) { ?>
      <tr>
-     	<td><?php print $agency->agency_name; ?></td>
+     	<td><?php print stripslashes($agency->agency_name); ?></td>
      	<td><?php print $agency->agency_url; ?></td>
      	<td><?php print $agency->agency_phone; ?></td>
      	<td><?php print $agency->agency_email; ?></td>

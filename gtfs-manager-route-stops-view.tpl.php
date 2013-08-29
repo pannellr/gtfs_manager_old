@@ -5,6 +5,7 @@
  *
  */
 ?>
+ <?php print implode(' | ', $variables['links']); ?>
 <table class="route-stops-view">
   <thead>
     <tr>
@@ -17,6 +18,7 @@
       <th>Arrives</th>
       <th>Departs</th>
       <th>Sequence</th>
+      <th>Distance</th>
       <th>Calendar</th>
       <th>Features</th>
       <th>Options</th>
@@ -35,6 +37,7 @@
     <td><?php print $stop->arrival_time; ?></td>
     <td><?php print $stop->departure_time; ?></td>
     <td><?php print $stop->stop_sequence; ?></td>
+    <td><?php print $stop->shape_dist_traveled . $stop->distance_unit_code; ?></td>
     <td><?php print $stop->calendar; ?></td>
     <td><?php print $stop->features; ?></td>
     <td><?php print implode('<br />', $stop->links); ?></td>
@@ -42,4 +45,3 @@
 <?php } ?>
  </tbody>
 </table>
- <?php print $variables['links']; ?>
